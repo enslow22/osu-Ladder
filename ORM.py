@@ -1,6 +1,6 @@
 import datetime
 import os
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, and_
 from dotenv import load_dotenv
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.orm import Session
@@ -33,8 +33,7 @@ class ORM:
         user_objs = []
         # Check if users are in the database already
         stmt = select(RegisteredUser).where(RegisteredUser.user_id.in_(user_ids))
-        a = self.session.scalars(stmt).first()
-        if a:
+        if self.session.scalars(stmt).first():
             print('Erm someone is already here')
             return
         for user_id in user_ids:
@@ -194,6 +193,54 @@ class ORM:
             pklfile = open('pkl/%s.pkl' % username, 'wb')
             pickle.dump(most_played, pklfile)
             pklfile.close()
+
+    # API ROUTES
+    # All these are routes in the api
+
+    # Get all of a player's scores on a specific map
+    def fetch_user_scores_on_beatmap(self, beatmap_id, user_id, mode=0):
+        # 0 osu, 1 taiko, 2 catch, 3 mania
+        tbl = get_mode_table(mode)
+        stmt = select(tbl).where(
+            and_(
+                getattr(tbl, 'beatmap_id') == beatmap_id,
+                getattr(tbl, 'user_id') == user_id
+            )
+        )
+        a = self.session.scalars(stmt).all()
+        return a
+
+    # Construct a Leaderboard for a group on a beatmap
+    # Allow functionality to query based on pp, lazer score, acc
+    # Also allow filtering by mods (This will be tougher since NC and DT are the same)
+    def get_group_leaderboard(self, group, beatmap_id, mode = 0):
+        # Get all members of a group
+        stmt = select(RegisteredUserTag.user_id).where(RegisteredUserTag.tag == group)
+        user_ids = self.session.scalars(stmt).all()
+
+        # Get the top score of each player on this map
+        tbl = get_mode_table(mode)
+        stmt = select(tbl).where(
+            and_(
+                getattr(tbl, 'beatmap_id') == beatmap_id,
+                getattr(tbl, 'user_id').in_(user_ids)
+            )
+        ).order_by(getattr(tbl, 'stable_score').desc())
+        lb = self.session.scalars(stmt).all()
+        return lb
+
+
+def get_mode_table(mode):
+    match mode:
+        case 0:
+            return OsuScore
+        case 1:
+            return TaikoScore
+        case 2:
+            return CatchScore
+        case 3:
+            return ManiaScore
+
 
 if __name__ == '__main__':
     orm = ORM()
