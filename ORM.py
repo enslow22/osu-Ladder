@@ -9,6 +9,8 @@ from osuApi import osu_api, get_user_info, get_user_scores_on_map, get_user_rece
 from ossapi import User
 import pickle
 
+UPDATE_INTERVAL_SECONDS = 43200
+
 class ORM:
 
     def __init__(self):
@@ -16,10 +18,11 @@ class ORM:
         user = os.getenv('DB_USER')
         password = os.getenv('DB_PASS')
         host = os.getenv('DB_HOST')
-        port = os.getenv('db_port')
+        port = os.getenv('DB_PORT')
         dbname = os.getenv('DB_NAME')
         connection_string = "mysql+mysqldb://%s:%s@%s:%s/%s" % (user, password, host, port, dbname)
         engine = create_engine(connection_string, echo=False)
+        engine.connect()
         self.session = Session(engine)
 
     #
@@ -33,8 +36,10 @@ class ORM:
         user_objs = []
         # Check if users are in the database already
         stmt = select(RegisteredUser).where(RegisteredUser.user_id.in_(user_ids))
-        if self.session.scalars(stmt).first():
+        a = self.session.scalars(stmt).first()
+        if a:
             print('Erm someone is already here')
+            print('%s, user id: %s' % (a.username, str(a.user_id)))
             return
         for user_id in user_ids:
             user_info = get_user_info(user_id)
@@ -127,6 +132,7 @@ class ORM:
 
     def fetch_and_insert_daily_scores(self, user_id):
         scores = get_user_recent_scores(user_id)
+        #TODO update user last updated here
         if len(scores) == 0:
             return None, None
         return len(scores), self.insert_scores(scores)
@@ -141,6 +147,10 @@ class ORM:
 
         for user in all_users:
             print('Updating %s' % user.user_id)
+            time_diff = today - user.last_updated
+            # 12 hours
+            if time_diff.seconds < UPDATE_INTERVAL_SECONDS:
+                continue
             num_scores, res = self.fetch_and_insert_daily_scores(user.user_id)
             if num_scores is None:
                 continue
@@ -151,18 +161,16 @@ class ORM:
         return summary
 
     def initial_fetch_all(self):
-        statement = select(RegisteredUser).where(RegisteredUser.last_updated is None)
+        statement = select(RegisteredUser).where(RegisteredUser.last_updated.is_(None))
         all_users = self.session.scalars(statement).all()
         for user in all_users:
-            if user.last_updated is not None:
-                continue
-            self.initial_fetch_user(user.user_id)
+            self.fetch_all_user_scores(user.user_id)
             user.last_updated = datetime.datetime.now()
             self.session.merge(user)
             self.session.commit()
         pass
 
-    def initial_fetch_user(self, user_id, from_pickle = False):
+    def fetch_all_user_scores(self, user_id, from_pickle = False):
         user_info = get_user_info(user_id)
         username = user_info.username
         print('Adding %s to the database. Fetching their scores' % username)
@@ -244,4 +252,8 @@ def get_mode_table(mode):
 
 if __name__ == '__main__':
     orm = ORM()
+    # add thorwave 12272964
+    # Recalculate airiest and 910dowii
+    orm.fetch_all_user_scores(21368052)
+    orm.fetch_all_user_scores(18693500)
     orm.initial_fetch_all()
