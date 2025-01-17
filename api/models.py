@@ -32,6 +32,12 @@ class RankEnum(enum.Enum):
     X = 'X'
     XH = 'XH'
 
+class PlaymodeEnum(enum.Enum):
+    osu = 'osu'
+    taiko = 'taiko'
+    fruits = 'fruits'
+    mania = 'mania'
+
 class Score(Base):
     __abstract__ = True
     score_id = Column(Integer, primary_key=True)
@@ -137,8 +143,7 @@ class UserStats(Base):
 
     # Given a User object from the osu! api, set all fields on the mapped class
     def set_details(self, info):
-        # TODO
-        # Test if isintance(info, User) works
+        # TODO Test if isintance(info, User) works
         stats = info.statistics
         self.count300 = stats.count_300
         self.count100 = stats.count_100
@@ -175,7 +180,25 @@ class RegisteredUser(Base):
     __tablename__ = 'registered_users'
     user_id = Column(Integer, primary_key=True)
     username = Column(String)
+    country = Column(String)
+    discord = Column(String)
+    profile_hue = Column(Integer)
+    avatar_url = Column(String)
+    playmode = Column(Enum(PlaymodeEnum))
     last_updated = Column(DateTime)
+
+    # If given a User Object (from the osu api wrapper), it will populate the row with the correct info
+    def __init__(self, user_info):
+        self.set_all(user_info)
+
+    def set_all(self, user_info):
+        self.user_id = user_info.id
+        self.username = user_info.username
+        self.country = user_info.country_code
+        self.discord = user_info.discord
+        self.profile_hue = user_info.profile_hue
+        self.avatar_url = user_info.avatar_url
+        self.playmode = user_info.playmode
 
 class RegisteredUserTag(Base):
     __tablename__ = 'registered_user_tags'

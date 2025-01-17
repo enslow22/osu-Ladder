@@ -3,8 +3,13 @@ from dotenv import load_dotenv
 import os
 from ratelimit import limits, sleep_and_retry
 
+# This is a wrapper for Ossapi by tybug
+# https://github.com/tybug/ossapi
+
 ONE_MINUTE = 60
-CALLS = 100
+CALLS = 70
+
+# TODO: Redo this logic to use authenticated access tokens from the end user
 
 load_dotenv()
 client_id = os.getenv('CLIENT_ID')
@@ -67,16 +72,16 @@ def parse_modlist(modlist):
 
 @sleep_and_retry
 @limits(calls=CALLS, period=ONE_MINUTE)
-def get_user_scores_on_map(beatmap_id, user_id, multiple = True):
+def get_user_scores_on_map(beatmap_id, user_id, multiple = True, mode = None):
     try:
         if multiple:
-            score_infos = osu_api.beatmap_user_scores(beatmap_id, user_id)
+            score_infos = osu_api.beatmap_user_scores(beatmap_id, user_id, mode = mode)
         else:
-            score_infos = [osu_api.beatmap_user_score(beatmap_id, user_id).score]
+            score_infos = [osu_api.beatmap_user_score(beatmap_id, user_id, mode = mode).score]
     except ValueError as ve:
         print(ve)
-        print('map is unranked probably')
-        return None
+        print('Map probably has an issue or has no leaderboard')
+        return []
     return score_infos
 
 @sleep_and_retry
