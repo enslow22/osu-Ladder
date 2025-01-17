@@ -143,7 +143,6 @@ class UserStats(Base):
 
     # Given a User object from the osu! api, set all fields on the mapped class
     def set_details(self, info):
-        # TODO Test if isintance(info, User) works
         stats = info.statistics
         self.count300 = stats.count_300
         self.count100 = stats.count_100
