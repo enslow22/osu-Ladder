@@ -3,7 +3,7 @@ from typing import Annotated, List, Optional
 from starlette.status import HTTP_200_OK
 from ORM import ORM
 from scoreService import ScoreService
-from fetchQueue import TaskQueue, daily_queue_all
+from fetchQueue import TaskQueue
 from models import RegisteredUser
 from userService import UserService
 from leaderboardService import LeaderboardService
