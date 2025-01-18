@@ -3,7 +3,7 @@ from typing import Annotated, List, Optional
 from starlette.status import HTTP_200_OK
 from ORM import ORM
 from scoreService import ScoreService
-from fetchQueue import FetchQueue, DailyQueue
+from fetchQueue import TaskQueue, daily_queue_all
 from models import RegisteredUser
 from userService import UserService
 from leaderboardService import LeaderboardService
@@ -14,8 +14,7 @@ orm = ORM()
 user_service = UserService(session= orm.sessionmaker())
 score_service = ScoreService(session= orm.sessionmaker())
 leaderboard_service = LeaderboardService(session=orm.sessionmaker())
-fq = FetchQueue(sessionmaker=orm.sessionmaker)
-dq = DailyQueue(sessionmaker=orm.sessionmaker)
+tq = TaskQueue(orm.sessionmaker)
 
 class InternalError(Exception):
     pass
@@ -66,14 +65,10 @@ def get_fetch_queue():
     :return: the fetch queue
     """
     import copy
-    if fq.current is None:
+    if tq.current is None:
         return {'current': None, 'in queue': None}
 
-    current_user = copy.deepcopy(fq.current)
-    current_user['num_maps'] = len(current_user['maps'])
-    current_user.pop('maps', None)
-
-    return {'current': current_user, 'in queue': fq.q.queue}
+    return {'current': copy.deepcopy(tq.current), 'in queue': tq.q.queue}
 
 @app.post("/initial_fetch/{user_id}", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(user_id: int, modes: Annotated[ list[str] | None, Query(description='osu, taiko, fruits, mania')] = None):
@@ -86,31 +81,16 @@ def initial_fetch(user_id: int, modes: Annotated[ list[str] | None, Query(descri
     :param modes:   a list of modes for which to fetch the user's scores (includes converts)
     :return: None
     """
-    fq.enqueue(user_id, tuple(modes))
+    tq.enqueue(('initial_fetch', {'user_id': user_id, 'modes': tuple(modes)}))
     items = {"user_id": user_id,
              "modes": modes,
-             "queue": fq.q.queue}
-
-    print('what')
-    #fq.enqueue()
+             "queue": tq.q.queue}
     return items
 
 @app.post("/daily_fetch_all/", status_code=status.HTTP_202_ACCEPTED)
 def daily_fetch_all():
-    dq.enqueue_all()
-    return {"message": "success"}
-
-@app.get("/daily_fetch_queue/", status_code=status.HTTP_200_OK)
-def get_daily_fetch_queue():
-    import copy
-    if dq.current is None:
-        return {'current': None, 'in queue': None}
-
-    current_user = copy.deepcopy(fq.current)
-    current_user['num_maps'] = len(current_user['maps'])
-    current_user.pop('maps', None)
-
-    return {'current': current_user, 'in queue': dq.q.queue}
+    tq.daily_queue_all()
+    return {"message": "added all users to queue"}
 
 @app.post("/add_tag/", status_code=status.HTTP_201_CREATED)
 def add_tag(user_id: Annotated[ list[int], Query(description='list of ids')], tag: str):
