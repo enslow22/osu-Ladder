@@ -1,6 +1,6 @@
 import datetime
-from sqlalchemy.orm import DeclarativeBase, registry
-from sqlalchemy import Column, String, Integer, Float, Date, Boolean, DateTime
+from sqlalchemy.orm import DeclarativeBase, registry, relationship
+from sqlalchemy import Column, String, Integer, Float, Date, Boolean, DateTime, ForeignKey
 from sqlalchemy.types import JSON
 import enum
 from sqlalchemy import Enum
@@ -9,7 +9,9 @@ from osuApi import parse_modlist
 mapper_registry = registry()
 
 class Base(DeclarativeBase):
-    pass
+    def to_dict(self):
+        return {field.name: getattr(self, field.name) for field in self.__table__.c}
+
 '''
 class User(Base):
     __tablename__ = 'sample_users'
@@ -42,7 +44,7 @@ class Score(Base):
     __abstract__ = True
     score_id = Column(Integer, primary_key=True)
     beatmap_id = Column(Integer)
-    user_id = Column(Integer)
+    user_id = Column(Integer, ForeignKey('registered_users.user_id'))
     stable_score = Column(Integer)
     lazer_score = Column(Integer)
     classic_score = Column(Integer)
