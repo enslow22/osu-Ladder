@@ -13,8 +13,8 @@ class ORM:
         port = os.getenv('DB_PORT')
         dbname = os.getenv('DB_NAME')
         connection_string = "mysql+mysqldb://%s:%s@%s:%s/%s" % (user, password, host, port, dbname)
-        engine = create_engine(connection_string, echo=False)
-        self.sessionmaker = sessionmaker(engine)
+        self.engine = create_engine(connection_string, echo=False)
+        self.sessionmaker = sessionmaker(self.engine)
         self.session = self.sessionmaker()
 
 if __name__ == '__main__':
