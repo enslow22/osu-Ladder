@@ -2,10 +2,10 @@
 Contains helper functions which will be used in more than one service
 """
 import datetime
-
 from models import OsuScore, TaikoScore, CatchScore, ManiaScore
 import operator as op
 
+modes = ['osu', 'taiko', 'fruits', 'mania']
 
 def get_mode_table(mode: str or int):
     match mode:
