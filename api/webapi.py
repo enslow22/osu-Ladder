@@ -87,10 +87,15 @@ def initial_fetch(user_id: int, modes: Annotated[ list[str] | None, Query(descri
              "queue": tq.q.queue}
     return items
 
+@app.post("/daily_fetch_user/{user_id}", status_code=status.HTTP_202_ACCEPTED)
+def daily_fetch_all(user_id: int):
+    tq.enqueue(('daily_fetch', {'user_id': user_id}))
+    return get_fetch_queue()
+
 @app.post("/daily_fetch_all/", status_code=status.HTTP_202_ACCEPTED)
-def daily_fetch_all():
-    tq.daily_queue_all()
-    return {"message": "added all users to queue"}
+def daily_fetch_all(force: bool = False):
+    tq.daily_queue_all(force)
+    return get_fetch_queue()
 
 @app.post("/add_tag/", status_code=status.HTTP_201_CREATED)
 def add_tag(user_id: Annotated[ list[int], Query(description='list of ids')], tag: str):
