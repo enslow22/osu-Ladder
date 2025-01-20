@@ -87,10 +87,17 @@ def get_user_scores_on_map(beatmap_id, user_id, multiple = True, mode = None):
 @sleep_and_retry
 @limits(calls=CALLS, period=ONE_MINUTE)
 def get_user_recent_scores(user_id):
+    from util import modes
     scores = []
     offset = 0
-    limit = 5
-    while b := osu_api.user_scores(user_id, 'recent', offset=offset, limit=limit):
-        scores += b
-        offset += limit
+    limit = 100
+    for mode in modes:
+        while b := osu_api.user_scores(user_id, 'recent', mode=mode, offset=offset, limit=limit):
+            scores += b
+            offset += limit
+        offset = 0
     return scores
+
+if __name__ == '__main__':
+    a = get_user_recent_scores(10651409)
+    print(a)
