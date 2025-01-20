@@ -33,17 +33,13 @@ class TaskQueue:
 
         if task_type == 'daily_fetch':
             import datetime
-            today = datetime.datetime.now()
             user = session.get(RegisteredUser, data['user_id'])
+            session.close()
             if user is None:
                 print('User %s not registered' % data['user_id'])
                 return
             if user.last_updated is None:
                 print('Please do an initial fetch for %s first' % user.username)
-                return
-            time_diff = today - user.last_updated
-            if time_diff.total_seconds() < UPDATE_INTERVAL_SECONDS:
-                print('User %s does not need to be updated yet' % user.username)
                 return
             if user in self.q.queue:
                 print('%s is already in the queue!' % user.username)
@@ -51,6 +47,7 @@ class TaskQueue:
             print('Adding %s to the daily fetch queue' % user.username)
         elif task_type == 'initial_fetch':
             user = session.get(RegisteredUser, data['user_id'])
+            session.close()
             if user is None:
                 print('User %s not registered' % data['user_id'])
                 return
@@ -65,7 +62,6 @@ class TaskQueue:
             if data['modes'] is None:
                 data['modes'] = (user.playmode,)
             print('Adding %s to the fetch queue for %s' % (user.username, ', '.join(data['modes'])))
-        session.close()
         import time
         self.q.put((self.all_types.index(task_type)+1, time.time(), task_type, data))
         if self.current is None:
@@ -134,13 +130,16 @@ class TaskQueue:
     def get_priority(self, task_type: str):
         return self.all_types.index(task_type)
 
-    def daily_queue_all(self):
+    def daily_queue_all(self, force: bool = False):
         from datetime import timedelta
         today = datetime.datetime.now()
         time_diff = today - timedelta(seconds=UPDATE_INTERVAL_SECONDS)
         session = self.sessionmaker()
-        stmt = select(RegisteredUser).filter(RegisteredUser.last_updated < time_diff)
+        stmt = select(RegisteredUser)
+        if not force:
+            stmt = stmt.filter(RegisteredUser.last_updated < time_diff)
         all_users = session.scalars(stmt).all()
+        session.close()
         for user in all_users:
             self.enqueue(('daily_fetch', {'user_id': user.user_id}))
 
@@ -149,7 +148,7 @@ if __name__ == '__main__':
     orm = ORM()
     tq = TaskQueue(orm.sessionmaker)
     us = UserService(orm.sessionmaker())
-    tq.daily_queue_all()
+    tq.daily_queue_all(force=True)
 
     print(tq.q.queue)
     """
