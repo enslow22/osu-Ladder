@@ -31,6 +31,7 @@ class TaskQueue:
             return
         session = self.sessionmaker()
 
+        bonus_priority = 0
         if task_type == 'daily_fetch':
             import datetime
             user = session.get(RegisteredUser, data['user_id'])
@@ -48,6 +49,7 @@ class TaskQueue:
         elif task_type == 'initial_fetch':
             user = session.get(RegisteredUser, data['user_id'])
             session.close()
+            bonus_priority = len(data['modes'])
             if user is None:
                 print('User %s not registered' % data['user_id'])
                 return
@@ -63,7 +65,7 @@ class TaskQueue:
                 data['modes'] = (user.playmode,)
             print('Adding %s to the fetch queue for %s' % (user.username, ', '.join(data['modes'])))
         import time
-        self.q.put((self.all_types.index(task_type)+1, time.time(), task_type, data))
+        self.q.put((self.all_types.index(task_type)+1, time.time()+bonus_priority*3600, task_type, data))
         if self.current is None:
             self.start()
         return
