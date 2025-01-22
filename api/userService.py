@@ -17,6 +17,7 @@ class UserService:
     def __init__(self, session):
         self.session = session
 
+    # TODO: this thing doesn't need to exist
     def get_user(self, user_id: int) -> RegisteredUser or None:
         """
         Get a user
@@ -31,7 +32,8 @@ class UserService:
         except Exception as e:
             return None
 
-    def register_user(self, user_id: int):
+    # TODO: hash the apikey before saving to db
+    def register_user(self, user_id: int, apikey: str | None):
         """
         Register a new user
 
@@ -41,12 +43,23 @@ class UserService:
         a = self.get_user(user_id)
         if a is not None:
             print('%s, user id: %s already exists in the database' % (a.username, str(a.user_id)))
+            if apikey:
+                a.apikey = apikey
+                print('Updated apikey for %s' % a.username)
+                self.session.commit()
             return False
         user_info = osuApi.get_user_info(user_id)
         new_user = RegisteredUser(user_info)
+        if apikey:
+            new_user.apikey = apikey
         self.session.add(new_user)
         self.session.commit()
         return True
+
+    def get_user_from_apikey(self, apikey):
+        stmt = select(RegisteredUser).filter(RegisteredUser.apikey == apikey)
+        user = self.session.scalars(stmt).one()
+        return user
 
     def update_user_metadata(self, user_id: int):
         """
@@ -143,10 +156,18 @@ class UserService:
 
 
 if __name__ == '__main__':
+    import os
+    path = 'frontend/templates/index.html'
+    print(os.path.exists(path))
     from ORM import ORM
     orm = ORM()
     user_service = UserService(orm.sessionmaker())
-    a = user_service.session.scalars(select(RegisteredUser)).all()
+    #user_service.register_user(3985234)
+    #user_service.add_tags([3985234], 'OR')
+    user_service.update_user_metadata(10651409)
+
+    #a = user_service.session.scalars(select(RegisteredUser)).all()
+
 
 
     """
