@@ -187,6 +187,7 @@ class RegisteredUser(Base):
     avatar_url = Column(String)
     playmode = Column(Enum(PlaymodeEnum))
     last_updated = Column(DateTime)
+    apikey = Column(String)
 
     # If given a User Object (from the osu api wrapper), it will populate the row with the correct info
     def __init__(self, user_info):
