@@ -38,7 +38,7 @@ class UserService:
         Register a new user
 
         :param user_id: a user_id
-        :return: True for success, False for failure
+        :return: a User object
         """
         a = self.get_user(user_id)
         if a is not None:
@@ -47,14 +47,14 @@ class UserService:
                 a.apikey = apikey
                 print('Updated apikey for %s' % a.username)
                 self.session.commit()
-            return False
+            return a
         user_info = osuApi.get_user_info(user_id)
         new_user = RegisteredUser(user_info)
         if apikey:
             new_user.apikey = apikey
         self.session.add(new_user)
         self.session.commit()
-        return True
+        return new_user
 
     def get_user_from_apikey(self, apikey):
         stmt = select(RegisteredUser).filter(RegisteredUser.apikey == apikey)
