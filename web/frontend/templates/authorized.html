@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Authorized</title>
+    <script type="text/javascript" src="script.js"></script>
+</head>
+<body>
+Hi {{ username }} you are logged in :)
+Your api key is {{ apikey }}
+<img src="{{ profile_avatar }}">
+<button onclick="logout()">Log Out</button>
+<br>
+<input type="checkbox" id="catch_converts" value="true">
+<label for="catch_converts">Include Catch Converts</label><br>
+<button onclick="callInitialFetch('{{ apikey }}')">Submit</button>
+<p>Note that selecting more modes will decrease your priority in the queue!</p>
+</body>
+</html>
