@@ -2,7 +2,7 @@
 Contains helper functions which will be used in more than one service
 """
 import datetime
-from models import OsuScore, TaikoScore, CatchScore, ManiaScore
+from .models import OsuScore, TaikoScore, CatchScore, ManiaScore
 import operator as op
 
 modes = ['osu', 'taiko', 'fruits', 'mania']
@@ -82,7 +82,5 @@ def parse_score_filters(mode: str or int, filters: str):
 
 if __name__ == '__main__':
 
-
     a = parse_score_filters('osu', 'date<2024-10-10')
     #parse_score_filters('osu', 'date<2024-12-31 rank=S')
-
