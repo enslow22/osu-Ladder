@@ -1,6 +1,7 @@
-from util import get_mode_table
+from database.userService import UserService
+from .util import get_mode_table
+from .osuApi import get_user_scores_on_map, get_user_recent_scores
 from ossapi.models import Score
-from osuApi import get_user_scores_on_map, get_user_recent_scores
 from typing import List
 from sqlalchemy import select, and_
 
@@ -26,19 +27,27 @@ class ScoreService:
             return False
 
     # Given a user and beatmap id, insert that user's highest score into the database
-    def fetch_and_insert_score(self, beatmap_id: int, user_id: int, multiple: bool = True, modes: tuple[...] = ()):
+    def fetch_and_insert_score(self, beatmap_id: int, user_id: int, multiple: bool = True, modes: tuple[...] = (), default_mode: str = None):
         # If converts are specified, get them as well
         # Check for allowed values
 
         score_infos = []
 
-        # If the default map is standard, there will be converts.
-        # Otherwise, there will be no converts
-        # If score_infos is [], then that means the user did not have a score on the default difficulty.
-        # They might have a score on a convert, so we need to check the converts.
-        # so if score_infos is empty or if it contains standard plays, we need to check for other modes
-        for mode in modes:
-            score_infos += get_user_scores_on_map(beatmap_id, user_id, multiple, mode=mode)
+        # See if the beatmap default was specified.
+        # If not, just fetch for all specified modes
+        # If so, fetch the default mode first. If the default mode was not osu, then there are converts, and you can
+        # safely continue. However, if the default mode was osu, we need to check for converts.
+        if default_mode is None:
+            for mode in modes:
+                score_infos += get_user_scores_on_map(beatmap_id, user_id, multiple, mode=mode)
+        else:
+            score_infos += get_user_scores_on_map(beatmap_id, user_id, multiple)
+            if default_mode == 'osu':
+                for mode in modes:
+                    if mode == 'osu':
+                        continue
+                    score_infos += get_user_scores_on_map(beatmap_id, user_id, multiple, mode=mode)
+
         return self.insert_scores(score_infos)
 
     def get_user_scores(self, beatmap_id: int, user_id: int, mode: str or int, filters: tuple, metric: str):
@@ -61,4 +70,7 @@ if __name__ ==  '__main__':
     from ORM import ORM
     orm = ORM()
     score_service = ScoreService(orm.sessionmaker())
-    score_service.fetch_and_insert_score(4849275, 10651409, multiple=True, modes=('fruits', 'mania', 'taiko'))
+    #score_service.fetch_and_insert_score(4849275, 10651409, multiple=True, modes=('fruits', 'mania', 'taiko'))
+    user_service = UserService(orm.sessionmaker())
+    user = user_service.get_user(10651409)
+    setattr(user, 'track_%s' % 'fruits', True)
