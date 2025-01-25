@@ -5,11 +5,11 @@ Post and registration methods return True or False depending on if the operation
 """
 
 from typing import List
-from util import get_mode_table
-import osuApi
+from .util import get_mode_table
+from .osuApi import get_user_info
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from models import RegisteredUser, RegisteredUserTag, Score, OsuScore
+from .models import RegisteredUser, RegisteredUserTag, Score, OsuScore
 
 
 class UserService:
@@ -48,13 +48,20 @@ class UserService:
                 print('Updated apikey for %s' % a.username)
                 self.session.commit()
             return a
-        user_info = osuApi.get_user_info(user_id)
+        user_info = get_user_info(user_id)
         new_user = RegisteredUser(user_info)
         if apikey:
             new_user.apikey = apikey
         self.session.add(new_user)
         self.session.commit()
         return new_user
+
+    def set_tracked_modes(self, user_id: int, modes: tuple[str, ...]):
+        user = self.session.get(RegisteredUser.user_id == user_id)
+        for mode in modes:
+            setattr(user, 'track_%s' % mode, True)
+        self.session.commit()
+        return
 
     def get_user_from_apikey(self, apikey):
         stmt = select(RegisteredUser).filter(RegisteredUser.apikey == apikey)
@@ -72,7 +79,7 @@ class UserService:
         if user is None:
             print('User not found')
             return False
-        user_info = osuApi.get_user_info(user_id)
+        user_info = get_user_info(user_id)
         user.set_all(user_info)
         self.session.commit()
         return True
@@ -88,6 +95,7 @@ class UserService:
         if isinstance(user_ids, int):
             user_ids = [user_ids]
 
+        # TODO: This should be rewritten using select rather than query
         registered_profiles = self.session.query(RegisteredUser).filter(RegisteredUser.user_id.in_(user_ids)).all()
         registered_ids = [user.user_id for user in registered_profiles]
 
@@ -106,6 +114,7 @@ class UserService:
             self.session.commit()
             return True
         except IntegrityError as e:
+            self.session.commit()
             print(e.orig)
             print('No action taken')
             return False
@@ -157,11 +166,18 @@ class UserService:
 
 if __name__ == '__main__':
     import os
-    path = 'frontend/templates/index.html'
+    path = '../web/frontend/templates/index.html'
     print(os.path.exists(path))
     from ORM import ORM
     orm = ORM()
-    user_service = UserService(orm.sessionmaker())
+    session = orm.sessionmaker()
+    user_service = UserService(session)
+    user = user_service.get_user(10651409)
+    setattr(user, 'track_%s' % 'fruits', True)
+    session.commit()
+    session.close()
+
+
     #user_service.register_user(3985234)
     #user_service.add_tags([3985234], 'OR')
     user_service.update_user_metadata(10651409)
