@@ -73,7 +73,7 @@ async def auth_via_osu(code: str):
         user_data = r.json()
         print('Success! %s has successfully signed in with osu oauth.' % user_data['username'])
 
-        static_secret = os.getenv('apikeysecret')
+        static_secret = os.getenv('APIKEYSECRET')
         apikey = sha256((static_secret + str(user_data['id'])).encode('utf-8')).hexdigest()
         user = user_service.register_user(user_data['id'], apikey)
         access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey})
