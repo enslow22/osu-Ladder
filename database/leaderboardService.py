@@ -1,7 +1,7 @@
 from typing import List
 from sqlalchemy import select, and_
-from models import Score, RegisteredUser
-from util import get_mode_table
+from .models import Score, RegisteredUser
+from .util import get_mode_table
 
 class LeaderboardService:
 

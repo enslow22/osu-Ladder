@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Integer, Float, Date, Boolean, DateTime, 
 from sqlalchemy.types import JSON
 import enum
 from sqlalchemy import Enum
-from osuApi import parse_modlist
+from .osuApi import parse_modlist
 
 mapper_registry = registry()
 
@@ -143,7 +143,7 @@ class UserStats(Base):
     def __init__(self, user_id):
         self.user_id = user_id
 
-    # Given a User object from the osu! api, set all fields on the mapped class
+    # Given a User object from the osu! database, set all fields on the mapped class
     def set_details(self, info):
         stats = info.statistics
         self.count300 = stats.count_300
@@ -187,9 +187,13 @@ class RegisteredUser(Base):
     avatar_url = Column(String)
     playmode = Column(Enum(PlaymodeEnum))
     last_updated = Column(DateTime)
+    track_osu = Column(Boolean)
+    track_taiko = Column(Boolean)
+    track_fruits = Column(Boolean)
+    track_mania = Column(Boolean)
     apikey = Column(String)
 
-    # If given a User Object (from the osu api wrapper), it will populate the row with the correct info
+    # If given a User Object (from the osu database wrapper), it will populate the row with the correct info
     def __init__(self, user_info):
         self.set_all(user_info)
 

@@ -99,5 +99,20 @@ def get_user_recent_scores(user_id):
     return scores
 
 if __name__ == '__main__':
-    a = get_user_recent_scores(10651409)
-    print(a)
+    authurl = 'https://osu.ppy.sh/oauth/token'
+    headers = {'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded'}
+    body = {'client_id': client_id,
+            'client_secret': client_secret,
+            'grant_type': 'client_credentials',
+            'scope': 'public'}
+    url = 'https://osu.ppy.sh/api/v2/scores'
+    import requests
+    res = requests.post(authurl, headers=headers, data=body)
+    access_token = res.json()['access_token']
+    headers['Authorization'] = 'Bearer %s' % access_token
+    res = requests.get(url, headers=headers)
+    a = res.json()
+    print(res.json())
+    #a = get_user_recent_scores(10651409)
+    #print(a)
