@@ -25,7 +25,7 @@ import os
 dotenv.load_dotenv('../database/.env')
 webclient_id = os.getenv('WEBCLIENT_ID')
 webclient_secret = os.getenv('WEBCLIENT_SECRET')
-redirect_uri = 'http://localhost:8000/auth'
+redirect_uri = os.getenv('redirect_uri')
 templates = Jinja2Templates(directory='web/frontend/templates')
 
 orm = ORM()
