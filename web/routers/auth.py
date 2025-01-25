@@ -35,7 +35,7 @@ def get_score(beatmap_id: int, user_id: int, mode: str = 'osu', filters: Optiona
 
     return {"score": score_service.get_user_scores(beatmap_id, user_id, mode, filters, metric)}
 
-@router.post("/initial_fetch_self/", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/initial_fetch_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     from ..webapi import tq
     print('token v')

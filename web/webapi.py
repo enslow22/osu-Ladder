@@ -25,7 +25,7 @@ import os
 dotenv.load_dotenv('../database/.env')
 webclient_id = os.getenv('WEBCLIENT_ID')
 webclient_secret = os.getenv('WEBCLIENT_SECRET')
-redirect_uri = os.getenv('redirect_uri')
+redirect_uri = os.getenv('REDIRECT_URI')
 templates = Jinja2Templates(directory='web/frontend/templates')
 
 orm = ORM()
@@ -83,7 +83,7 @@ async def auth_via_osu(code: str):
         return response
     return {"message": "Something has gone wrong. Please try again and let enslow know if you continue to have issues!"}
 
-@app.get("/fetch_queue/", status_code=status.HTTP_200_OK)
+@app.get("/fetch_queue", status_code=status.HTTP_200_OK)
 def get_fetch_queue():
     """
     :return: the fetch queue
