@@ -1,13 +1,16 @@
 import datetime
 import os.path
 import queue
-from models import RegisteredUser
-from osuApi import get_most_played
+from .models import RegisteredUser
+from .osuApi import get_most_played
 import threading
-from ORM import ORM
-from userService import UserService
-from scoreService import ScoreService
+from .ORM import ORM
+from .userService import UserService
+from .scoreService import ScoreService
 from sqlalchemy import select
+
+# TODO rewrite basically all of this and learn how to use the background tasks functionality in fastapi
+# TODO this function should use the authenticated user's access token and not my own. Then we can fetch multiple people at once
 
 UPDATE_INTERVAL_SECONDS = 28800
 
@@ -30,7 +33,7 @@ class TaskQueue:
         if task_type not in self.all_types:
             return
         session = self.sessionmaker()
-
+        user_queue = [x[3]['user_id'] for x in self.q.queue]
         bonus_priority = 0
         if task_type == 'daily_fetch':
             import datetime
@@ -49,21 +52,22 @@ class TaskQueue:
         elif task_type == 'initial_fetch':
             user = session.get(RegisteredUser, data['user_id'])
             session.close()
-            bonus_priority = len(data['modes'])
+            bonus_priority = 1 if data['catch_converts'] else 0
             if user is None:
                 print('User %s not registered' % data['user_id'])
                 return
             if user.last_updated is not None:
                 print('User %s does not need to be fetched.' % user.username)
                 return
-            if user in self.q.queue:
+            if self.current is not None:
+                if self.current[1]['user_id'] == user.user_id:
+                    print('%s is already in the queue!' % user.username)
+                    return
+            if user.user_id in user_queue:
                 print('%s is already in the queue!' % user.username)
                 return
-
-            # If no modes were specified, just use the player's default mode
-            if data['modes'] is None:
-                data['modes'] = (user.playmode,)
-            print('Adding %s to the fetch queue for %s' % (user.username, ', '.join(data['modes'])))
+            catch_string = ' Also fetching catch converts.' if data['catch_converts'] else ''
+            print('Adding %s to the fetch queue.%s'% (user.username, catch_string))
         import time
         self.q.put((self.all_types.index(task_type)+1, time.time()+bonus_priority*3600, task_type, data))
         if self.current is None:
@@ -92,20 +96,22 @@ class TaskQueue:
                 user.last_updated = datetime.datetime.now()
             except Exception as e:
                 print(e)
-
         elif task_type == 'initial_fetch':
             user = session.get(RegisteredUser, data['user_id'])
-            modes = data['modes']
             score_service = ScoreService(session)
+            catch_converts = data['catch_converts']
+            catch_string = ' Also fetching catch converts.' if catch_converts else ''
 
-            print('Starting initial_fetch for %s on %s' % (user.username, ', '.join(modes)))
+            modes = ('osu', 'fruits') if catch_converts else ('osu',)
+
+            print('Starting initial_fetch for %s' % user.username)
             most_played = get_most_played(user.user_id)
             most_played = [{'beatmap_id': x.beatmap_id,
                             'beatmapset_id': x.beatmapset.id,
                             'status': x.beatmapset.status.value} for x in most_played]
             most_played = list(filter(lambda x: x['status'] in [1, 2, 4], most_played))
             num_maps = len(most_played)
-            print('Beginning fetch for %s! They have %s maps in their most played.' % (user.username, str(len(most_played))))
+            print('Beginning fetch for %s!%s They have %s maps in their most played.' % (user.username, catch_string, str(len(most_played))))
             try:
                 # For all maps, fetch the user's score on that map
                 while len(most_played) > 0:
