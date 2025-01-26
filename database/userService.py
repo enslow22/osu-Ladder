@@ -6,8 +6,8 @@ Post and registration methods return True or False depending on if the operation
 import datetime
 import os
 from typing import List
-from database.util import get_mode_table
-from database.osuApi import get_user_info
+from .util import get_mode_table
+from .osuApi import get_user_info
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError

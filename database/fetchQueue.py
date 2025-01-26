@@ -3,9 +3,9 @@ import os.path
 import queue
 from .models import RegisteredUser
 from .osuApiAuthService import OsuApiAuthService
-import database.userService as userService
+from .userService import refresh_tokens
+from .scoreService import insert_scores
 import threading
-import database.scoreService as scoreService
 from sqlalchemy import select
 
 # TODO rewrite basically all of this and learn how to use the background tasks functionality in fastapi
@@ -103,7 +103,7 @@ class TaskQueue:
 
             # Check that access token is not expired
             if user.expires_at < datetime.datetime.now():
-                userService.refresh_tokens(session, user)
+                refresh_tokens(session, user)
 
             auth_osu_api = OsuApiAuthService(user.user_id, user.access_token)
 
@@ -124,7 +124,7 @@ class TaskQueue:
                     beatmap = most_played.pop()
                     for mode in modes:
                         new_scores = auth_osu_api.get_user_scores_on_map(beatmap['beatmap_id'], mode=mode)
-                        scoreService.insert_scores(self.sessionmaker(), new_scores)
+                        insert_scores(self.sessionmaker(), new_scores)
                 user.last_updated = datetime.datetime.now()
             except Exception as e:
                 # Also add a flag to know if a user was kicked out in the middle of their initial fetch
