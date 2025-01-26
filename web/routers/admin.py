@@ -1,19 +1,17 @@
 from fastapi import APIRouter, status, Response
 from database.ORM import ORM
-from database.userService import UserService
+import database.userService as userService
 from database.models import RegisteredUser
-
 
 router = APIRouter()
 orm = ORM()
-user_service = UserService(orm.sessionmaker())
 
 @router.post("/add_user/{user_id}", status_code=status.HTTP_201_CREATED)
 async def add_registered_user(user_id: int, response: Response):
     """
     Register a new user
     """
-    if user_service.register_user(user_id=user_id, apikey=None):
+    if userService.register_user(session=orm.sessionmaker(), user_id=user_id, apikey=None):
         return {"message": "%s registered to database" % str(user_id)}
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST

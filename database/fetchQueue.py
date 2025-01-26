@@ -2,11 +2,9 @@ import datetime
 import os.path
 import queue
 from .models import RegisteredUser
-from .osuApi import get_most_played
+from .osuApiAuthService import OsuApiAuthService
 import threading
-from .ORM import ORM
-from .userService import UserService
-from .scoreService import ScoreService
+import database.scoreService as scoreService
 from sqlalchemy import select
 
 # TODO rewrite basically all of this and learn how to use the background tasks functionality in fastapi
@@ -90,28 +88,33 @@ class TaskQueue:
             user = session.get(RegisteredUser, data['user_id'])
             print('Starting daily_fetch for %s' % user.username)
             try:
-                score_service = ScoreService(session)
-                score_service.fetch_and_insert_daily_scores(data['user_id'])
+                # TODO rewrite this
+                #score_service = ScoreService(session)
+                #score_service.fetch_and_insert_daily_scores(data['user_id'])
                 print('Finished fetching %s\'s daily scores.\n' % user.username)
                 user.last_updated = datetime.datetime.now()
             except Exception as e:
                 print(e)
         elif task_type == 'initial_fetch':
             user = session.get(RegisteredUser, data['user_id'])
-            score_service = ScoreService(session)
             catch_converts = data['catch_converts']
             catch_string = ' Also fetching catch converts.' if catch_converts else ''
-
             modes = ('osu', 'fruits') if catch_converts else ('osu',)
 
             print('Starting initial_fetch for %s' % user.username)
-            most_played = get_most_played(user.user_id)
+
+            # TODO: Check that access token is not expired
+
+            auth_osu_api = OsuApiAuthService(user.user_id, user.access_token)
+
+            most_played = auth_osu_api.get_all_played_maps()
             most_played = [{'beatmap_id': x.beatmap_id,
                             'beatmapset_id': x.beatmapset.id,
                             'status': x.beatmapset.status.value} for x in most_played]
             most_played = list(filter(lambda x: x['status'] in [1, 2, 4], most_played))
             num_maps = len(most_played)
             print('Beginning fetch for %s!%s They have %s maps in their most played.' % (user.username, catch_string, str(len(most_played))))
+
             try:
                 # For all maps, fetch the user's score on that map
                 while len(most_played) > 0:
@@ -119,7 +122,9 @@ class TaskQueue:
                     if count % 50 == 0:
                         print('Added %s maps for %s so far!' % (str(count), user.username))
                     beatmap = most_played.pop()
-                    score_service.fetch_and_insert_score(beatmap['beatmap_id'], user.user_id, multiple=True, modes=modes)
+                    for mode in modes:
+                        new_scores = auth_osu_api.get_user_scores_on_map(beatmap['beatmap_id'], mode=mode)
+                        scoreService.insert_scores(self.sessionmaker(), new_scores)
                 user.last_updated = datetime.datetime.now()
             except Exception as e:
                 # Also add a flag to know if a user was kicked out in the middle of their initial fetch
@@ -152,13 +157,7 @@ class TaskQueue:
             self.enqueue(('daily_fetch', {'user_id': user.user_id}))
 
 if __name__ == '__main__':
-
-    orm = ORM()
-    tq = TaskQueue(orm.sessionmaker)
-    us = UserService(orm.sessionmaker())
-    tq.daily_queue_all(force=True)
-
-    print(tq.q.queue)
+    pass
     """
     score_service = ScoreService(orm.sessionmaker())
     fq = FetchQueue(orm.sessionmaker)

@@ -1,3 +1,4 @@
+import datetime
 from fastapi import FastAPI, status, Query, Response, Request, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.templating import Jinja2Templates
@@ -13,12 +14,8 @@ from pydantic import BaseModel
 from .dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 
 from database.ORM import ORM
-from database.scoreService import ScoreService
 from database.fetchQueue import TaskQueue
-from database.models import RegisteredUser
-from database.userService import UserService
-from database.leaderboardService import LeaderboardService
-from database.util import parse_score_filters
+import database.userService as userService
 import dotenv
 import os
 
@@ -29,10 +26,6 @@ redirect_uri = os.getenv('REDIRECT_URI')
 templates = Jinja2Templates(directory='web/frontend/templates')
 
 orm = ORM()
-
-user_service = UserService(session= orm.sessionmaker())
-score_service = ScoreService(session= orm.sessionmaker())
-leaderboard_service = LeaderboardService(session=orm.sessionmaker())
 tq = TaskQueue(orm.sessionmaker)
 
 app = FastAPI()
@@ -44,7 +37,9 @@ def main_page(request: Request, authorization: RegisteredUserCompact = Depends(h
         return templates.TemplateResponse(request=request, name='index.html', context={})
     else:
         # Get profile data from cookie
-        user = user_service.get_user_from_apikey(authorization['apikey'])
+        session = orm.sessionmaker()
+        user = userService.get_user_from_apikey(session, authorization['apikey'])
+        session.close()
         return templates.TemplateResponse(request=request,
                                           name='authorized.html',
                                           context={'apikey': user.apikey,
@@ -64,18 +59,25 @@ async def auth_via_osu(code: str):
               'code': code,
               'grant_type': 'authorization_code',
               'redirect_uri': redirect_uri,}
-    r = requests.post(url='https://osu.ppy.sh/oauth/token', data=params, headers=headers)
+    r = requests.post(url='https://osu.ppy.sh/oauth/token', data=params, headers=headers).json()
 
     # If everything is successful, we can generate their database key as described by Haruhime and store that in the database
-    if r.json()['access_token']:
-        headers['Authorization'] =  'Bearer %s' % r.json()['access_token']
+    if "access_token" in r:
+        access_token = r['access_token']
+        refresh_token = r['refresh_token']
+        expires_in = r['expires_in']
+
+        headers['Authorization'] =  'Bearer %s' % r['access_token']
         r = requests.get('https://osu.ppy.sh/api/v2/me/osu', headers=headers)
         user_data = r.json()
         print('Success! %s has successfully signed in with osu oauth.' % user_data['username'])
 
         static_secret = os.getenv('APIKEYSECRET')
         apikey = sha256((static_secret + str(user_data['id'])).encode('utf-8')).hexdigest()
-        user = user_service.register_user(user_data['id'], apikey)
+
+        session = orm.sessionmaker()
+        user = userService.register_user(session, user_data['id'], apikey, access_token=access_token, refresh_token=refresh_token, expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
+
         access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey})
         response = RedirectResponse(url='/')
         response.set_cookie(key='session_token', value=access_token, httponly=True, secure=True)

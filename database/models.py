@@ -1,10 +1,10 @@
 import datetime
-from sqlalchemy.orm import DeclarativeBase, registry, relationship
+from sqlalchemy.orm import DeclarativeBase, registry
 from sqlalchemy import Column, String, Integer, Float, Date, Boolean, DateTime, ForeignKey
 from sqlalchemy.types import JSON
 import enum
 from sqlalchemy import Enum
-from .osuApi import parse_modlist
+from util import parse_modlist
 
 mapper_registry = registry()
 
@@ -192,6 +192,9 @@ class RegisteredUser(Base):
     track_fruits = Column(Boolean)
     track_mania = Column(Boolean)
     apikey = Column(String)
+    access_token = Column(String)
+    refresh_token = Column(String)
+    expires_at = Column(DateTime)
 
     # If given a User Object (from the osu database wrapper), it will populate the row with the correct info
     def __init__(self, user_info):
