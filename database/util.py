@@ -7,7 +7,7 @@ import operator as op
 modes = ['osu', 'taiko', 'fruits', 'mania']
 
 def get_mode_table(mode: str or int):
-    from models import OsuScore, TaikoScore, CatchScore, ManiaScore
+    from .models import OsuScore, TaikoScore, CatchScore, ManiaScore
     match mode:
         case 'osu' | 0:
             return OsuScore
