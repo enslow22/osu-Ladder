@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Integer, Float, Date, Boolean, DateTime, 
 from sqlalchemy.types import JSON
 import enum
 from sqlalchemy import Enum
-from util import parse_modlist
+from database.util import parse_modlist
 
 mapper_registry = registry()
 

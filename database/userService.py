@@ -6,16 +6,15 @@ Post and registration methods return True or False depending on if the operation
 import datetime
 import os
 from typing import List
-from util import get_mode_table
-from osuApi import get_user_info
+from database.util import get_mode_table
+from database.osuApi import get_user_info
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from models import RegisteredUser, RegisteredUserTag, Score, OsuScore
+from database.models import RegisteredUser, RegisteredUserTag, Score
 
 
 # TODO: hash the apikey before saving to db
-# TODO: rewrite this abomination
 def register_user(session: Session, user_id: int, apikey: str | None, access_token: str | None = None, refresh_token: str | None = None, expires_at: datetime.datetime | None = None):
     user = session.get(RegisteredUser, user_id)
     if user is None:
