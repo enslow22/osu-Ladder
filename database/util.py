@@ -2,12 +2,12 @@
 Contains helper functions which will be used in more than one service
 """
 import datetime
-from .models import OsuScore, TaikoScore, CatchScore, ManiaScore
 import operator as op
 
 modes = ['osu', 'taiko', 'fruits', 'mania']
 
 def get_mode_table(mode: str or int):
+    from models import OsuScore, TaikoScore, CatchScore, ManiaScore
     match mode:
         case 'osu' | 0:
             return OsuScore
@@ -18,8 +18,22 @@ def get_mode_table(mode: str or int):
         case 'mania' | 3:
             return ManiaScore
 
-def parse_modlist(modstring: str):
-    pass
+def parse_modlist(modlist: list):
+    if not modlist:
+        return '', None
+    string = ''
+    for mod in modlist:
+        string += mod.acronym
+
+    # Figure out if classic
+    if modlist[-1].acronym == 'CL':
+        return string, None
+    else:
+        newmodlist = []
+        for mod in modlist:
+            newmodlist.append((mod.acronym, mod.settings))
+        tup = (string, newmodlist)
+        return tup
 
 def parse_score_filters(mode: str or int, filters: str):
     """
