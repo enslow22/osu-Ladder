@@ -3,6 +3,7 @@ import os.path
 import queue
 from .models import RegisteredUser
 from .osuApiAuthService import OsuApiAuthService
+import database.userService as userService
 import threading
 import database.scoreService as scoreService
 from sqlalchemy import select
@@ -88,9 +89,6 @@ class TaskQueue:
             user = session.get(RegisteredUser, data['user_id'])
             print('Starting daily_fetch for %s' % user.username)
             try:
-                # TODO rewrite this
-                #score_service = ScoreService(session)
-                #score_service.fetch_and_insert_daily_scores(data['user_id'])
                 print('Finished fetching %s\'s daily scores.\n' % user.username)
                 user.last_updated = datetime.datetime.now()
             except Exception as e:
@@ -103,7 +101,9 @@ class TaskQueue:
 
             print('Starting initial_fetch for %s' % user.username)
 
-            # TODO: Check that access token is not expired
+            # Check that access token is not expired
+            if user.expires_at < datetime.datetime.now():
+                userService.refresh_tokens(session, user)
 
             auth_osu_api = OsuApiAuthService(user.user_id, user.access_token)
 
