@@ -7,7 +7,7 @@ from ratelimit import limits, sleep_and_retry
 # https://github.com/tybug/ossapi
 
 ONE_MINUTE = 60
-CALLS = 70
+CALLS = 60
 
 # TODO: Redo this logic to use authenticated access tokens from the end user
 
