@@ -32,7 +32,7 @@ async function callInitialFetch(apikey) {
 
     q_string = '?catch_converts='+catch_converts.value.toString()
     console.log(q_string)
-    a = await fetch('/initial_fetch_self/' + q_string , {
+    a = await fetch('/initial_fetch_self' + q_string , {
     method: "POST",
     body: '{}',
     headers: {
