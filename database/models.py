@@ -48,6 +48,7 @@ class Score(Base):
     stable_score = Column(Integer)
     lazer_score = Column(Integer)
     classic_score = Column(Integer)
+    accuracy = Column(Float)
     maxcombo = Column(Integer)
     rank = Column(Enum(RankEnum))
     count50 = Column(Integer)
@@ -68,6 +69,7 @@ class Score(Base):
         self.stable_score = info.legacy_total_score
         self.lazer_score = info.total_score
         self.classic_score = info.classic_total_score
+        self.accuracy = info.accuracy
         self.maxcombo = info.max_combo
         self.rank = info.rank.value
         self.perfect = info.is_perfect_combo
