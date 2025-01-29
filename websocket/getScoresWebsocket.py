@@ -2,10 +2,8 @@
 
 import asyncio
 import os
-from database.ORM import ORM
-from database.scoreService import insert_scores
+
 from sqlalchemy import select
-from database.models import RegisteredUser
 from websockets.asyncio.client import connect
 import json
 import datetime
@@ -48,10 +46,11 @@ async def run():
             await process_scores(websocket)
 
 async def process_scores(websocket):
+
     try:
         time = datetime.datetime.now()
-        orm = ORM()
-        stmt = select(RegisteredUser.user_id)
+        orm = ORM.ORM()
+        stmt = select(models.RegisteredUser.user_id)
         user_ids = [user_id for user_id in orm.session.execute(stmt).scalars().all()]
         #print(user_ids)
         import dotenv
@@ -67,7 +66,7 @@ async def process_scores(websocket):
             if score['user_id'] in user_ids:
                 print(f'Found a score for {score["user_id"]}')
                 new_score = ossapi._instantiate_type(Score, score)
-                await insert_scores(orm.session, [new_score])
+                await scoreService.insert_scores(orm.session, [new_score])
             # Update registered users every minute.
             if minute_passed():
                 oldepoch = time.time()
@@ -80,5 +79,12 @@ async def process_scores(websocket):
         print(e)
 
 if __name__ == "__main__":
+    import sys
+    import os
 
+    # why
+    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'database')))
+    import ORM
+    import scoreService
+    import models
     asyncio.run(run())
