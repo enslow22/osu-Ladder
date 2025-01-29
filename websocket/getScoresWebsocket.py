@@ -87,4 +87,8 @@ if __name__ == "__main__":
     import ORM
     import scoreService
     import models
+    import subprocess
+    #subprocess.run('scores-ws/scores-ws.exe', cwd=)
+    os.chdir('scores-ws')
+    subprocess.Popen("scores-ws.exe")
     asyncio.run(run())
