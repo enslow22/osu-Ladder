@@ -79,16 +79,8 @@ async def process_scores(websocket):
         print(e)
 
 if __name__ == "__main__":
-    import sys
-    import os
-
-    # why
-    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'database')))
     import ORM
     import scoreService
     import models
-    import subprocess
-    #subprocess.run('scores-ws/scores-ws.exe', cwd=)
-    os.chdir('scores-ws')
-    subprocess.Popen("scores-ws.exe")
+
     asyncio.run(run())
