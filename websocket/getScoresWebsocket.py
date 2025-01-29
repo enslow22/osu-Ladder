@@ -45,13 +45,20 @@ async def run():
             await websocket.send(score_id)
             await process_scores(websocket)
 
+def get_all_users(session):
+    stmt = select(models.RegisteredUser.user_id)
+    user_ids = [user_id for user_id in session.execute(stmt).scalars().all()]
+    session.close()
+    print(user_ids)
+    return user_ids
+
 async def process_scores(websocket):
 
     try:
         time = datetime.datetime.now()
         orm = ORM.ORM()
         stmt = select(models.RegisteredUser.user_id)
-        user_ids = [user_id for user_id in orm.session.execute(stmt).scalars().all()]
+        user_ids = get_all_users(orm.sessionmaker())
         #print(user_ids)
         import dotenv
         ossapi = Ossapi(os.getenv('CLIENT_ID'), os.getenv('CLIENT_SECRET'))
@@ -72,7 +79,7 @@ async def process_scores(websocket):
             # Update registered users every minute.
             if minute_passed():
                 oldepoch = time.time()
-                user_ids = [user_id for user_id in orm.session.execute(stmt).scalars().all()]
+                user_ids = get_all_users(orm.sessionmaker())
 
 
     except asyncio.CancelledError:
