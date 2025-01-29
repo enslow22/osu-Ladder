@@ -2,7 +2,10 @@
 
 import asyncio
 import os
-
+from database.ORM import ORM
+from database.scoreService import insert_scores
+from sqlalchemy import select
+from database.models import RegisteredUser
 from websockets.asyncio.client import connect
 import json
 import datetime
@@ -77,8 +80,5 @@ async def process_scores(websocket):
         print(e)
 
 if __name__ == "__main__":
-    from ORM import ORM
-    from scoreService import insert_scores
-    from sqlalchemy import select
-    from models import RegisteredUser
+
     asyncio.run(run())
