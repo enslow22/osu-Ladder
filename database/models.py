@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Integer, Float, Date, Boolean, DateTime, 
 from sqlalchemy.types import JSON
 import enum
 from sqlalchemy import Enum
-from .util import parse_modlist
+import util
 
 mapper_registry = registry()
 
@@ -75,7 +75,7 @@ class Score(Base):
         self.count100 = int(info.statistics.ok or 0)
         self.count300 = int(info.statistics.great or 0)
         self.countmiss = int(info.statistics.miss or 0)
-        mod_string, mod_settings = parse_modlist(info.mods)
+        mod_string, mod_settings = util.parse_modlist(info.mods)
         self.enabled_mods = mod_string
         self.enabled_mods_settings = mod_settings
         self.date = info.ended_at

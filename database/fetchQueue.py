@@ -1,10 +1,10 @@
 import datetime
 import os.path
 import queue
-from .models import RegisteredUser
-from .osuApiAuthService import OsuApiAuthService
-from .userService import refresh_tokens
-from .scoreService import insert_scores
+from models import RegisteredUser
+from osuApiAuthService import OsuApiAuthService
+from userService import refresh_tokens
+from scoreService import insert_scores
 import threading
 from sqlalchemy import select
 

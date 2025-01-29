@@ -1,6 +1,6 @@
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
-from .util import get_mode_table
+from util import get_mode_table
 from typing import List
 from ossapi import Score
 

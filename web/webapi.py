@@ -8,10 +8,10 @@ from hashlib import sha256
 
 from starlette.staticfiles import StaticFiles
 
-from .routers import admin, auth, stats
+from routers import admin, auth, stats
 from pydantic import BaseModel
 
-from .dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
+from dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 
 from database.ORM import ORM
 from database.fetchQueue import TaskQueue

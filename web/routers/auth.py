@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, Query
 from starlette.responses import RedirectResponse
 from typing import Optional, Annotated
-from ..dependencies import RegisteredUserCompact, verify_token
+from web.dependencies import RegisteredUserCompact, verify_token
 from database.ORM import ORM
 from database.models import RegisteredUser
 import database.scoreService as scoreService

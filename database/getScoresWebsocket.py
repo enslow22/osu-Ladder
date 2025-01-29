@@ -77,8 +77,8 @@ async def process_scores(websocket):
         print(e)
 
 if __name__ == "__main__":
-    from database.ORM import ORM
-    from database.scoreService import insert_scores
+    from ORM import ORM
+    from scoreService import insert_scores
     from sqlalchemy import select
-    from database.models import RegisteredUser
+    from models import RegisteredUser
     asyncio.run(run())
