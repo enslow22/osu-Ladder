@@ -4,7 +4,7 @@ from util import get_mode_table
 from typing import List
 from ossapi import Score
 
-async def insert_scores(session: Session, scores: List[Score]):
+def insert_scores(session: Session, scores: List[Score]):
     if not scores:
         return False
     try:

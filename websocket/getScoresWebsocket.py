@@ -74,7 +74,7 @@ async def process_scores(websocket):
                 session = orm.sessionmaker()
                 print(f'Found a score for {score["user_id"]}')
                 new_score = ossapi._instantiate_type(Score, score)
-                await scoreService.insert_scores(session, [new_score])
+                scoreService.insert_scores(session, [new_score])
                 session.close()
             # Update registered users every minute.
             if minute_passed():
