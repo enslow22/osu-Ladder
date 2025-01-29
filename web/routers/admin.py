@@ -19,7 +19,7 @@ async def add_registered_user(user_id: int, response: Response):
 
 @router.post("/initial_fetch_user/{user_id}", status_code=status.HTTP_202_ACCEPTED)
 async def initial_fetch_user(user_id: int, catch_converts: bool | None):
-    from ..webapi import tq
+    from web.webapi import tq
     session = orm.sessionmaker()
     a = session.get(RegisteredUser, user_id)
     session.close()
