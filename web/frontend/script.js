@@ -30,7 +30,7 @@ async function logout() {
 async function callInitialFetch(apikey) {
     catch_converts = document.getElementById('catch_converts')
 
-    q_string = '?catch_converts='+catch_converts.value.toString()
+    q_string = '?catch_converts='+catch_converts.checked.toString()
     console.log(q_string)
     a = await fetch('/initial_fetch_self' + q_string , {
     method: "POST",
