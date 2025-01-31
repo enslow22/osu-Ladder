@@ -93,14 +93,18 @@ def get_fetch_queue():
     import copy
     if tq.current is None:
         return {'current': None, 'in queue': None}
+    user_queue = tq.q.queue
 
-    return {'current': copy.deepcopy(tq.current), 'in queue': tq.q.queue}
+    return {'current': copy.deepcopy(tq.current), 'in queue': [{'username': x[1].username,
+                                                                'user_id': x[1].user_id,
+                                                                'catch_converts': x[2],
+                                                                'num_maps': 'nan'} for x in user_queue]}
 
 app.include_router(
     auth.router,
     tags=["auth"],
     dependencies=[Depends(verify_token)],
-    ),
+    )
 app.include_router(
     stats.router,
     prefix="/stats",
