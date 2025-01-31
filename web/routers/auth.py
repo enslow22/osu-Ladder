@@ -38,12 +38,6 @@ def get_score(beatmap_id: int, user_id: int, mode: str = 'osu', filters: Optiona
 @router.post("/initial_fetch_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     from web.webapi import tq
-    print('token v')
-    print(token)
-
-    data = ('initial_fetch', {'user_id': token['user_id'], 'catch_converts': catch_converts})
-    tq.enqueue(data)
-    items = {"user_id": token['user_id'],
-             "catch_converts": catch_converts,
-             "queue": tq.q.queue}
-    return items
+    if tq.enqueue(token['user_id'], catch_converts):
+        return {'message': 'success'}
+    return {'message': 'fail'}

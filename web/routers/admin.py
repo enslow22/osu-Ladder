@@ -27,8 +27,7 @@ async def initial_fetch_user(user_id: int, catch_converts: bool | None):
         return {"message": "user is not registered"}
     if catch_converts is None:
         catch_converts = False
-    data = ('initial_fetch', {'user_id': a.user_id, 'catch_converts': catch_converts})
-    tq.enqueue(data)
+    tq.enqueue(a.user_id, catch_converts)
     items = {"user_id": a.user_id,
              "catch_converts": catch_converts,
              "queue": tq.q.queue}
