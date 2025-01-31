@@ -1,7 +1,11 @@
-from ossapi import Ossapi, Grant
+from ossapi import Ossapi, Grant, BeatmapPlaycount
 import dotenv
 import os
 from ratelimit import limits, sleep_and_retry
+from typing import List
+
+dotenv.load_dotenv('.env')
+NUM_THREADS = os.getenv('NUM_THREADS')
 
 CALLS = 60
 ONE_MINUTE = 60
@@ -12,7 +16,6 @@ class OsuApiAuthService:
 
     # Note that instantiating this with override will cause problems most likely im sorgy so just don't use it unless youre testing something
     def __init__(self, user_id: int, access_token: str, override=False):
-        dotenv.load_dotenv('.env')
         self.user_id = user_id
         if override:
             self.api = Ossapi(int(os.getenv('CLIENT_ID')),
@@ -24,7 +27,7 @@ class OsuApiAuthService:
                               redirect_uri=os.getenv('REDIRECT_URI'),
                               access_token=access_token,)
 
-    def get_all_played_maps(self):
+    def get_all_played_maps(self) -> List[BeatmapPlaycount]:
         map_list = []
         offset = 0
         limit = 100
@@ -38,7 +41,7 @@ class OsuApiAuthService:
 
     @sleep_and_retry
     @limits(calls=CALLS, period=ONE_MINUTE)
-    def get_user_maps(self, offset, limit):
+    def get_user_maps(self, offset, limit) -> List[BeatmapPlaycount]:
         return self.api.user_beatmaps(self.user_id, "most_played", limit=limit, offset=offset)
 
     @sleep_and_retry

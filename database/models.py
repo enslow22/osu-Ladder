@@ -5,6 +5,7 @@ from sqlalchemy.types import JSON
 import enum
 from sqlalchemy import Enum
 import util
+from ossapi import Score, User
 
 mapper_registry = registry()
 
@@ -62,7 +63,7 @@ class Score(Base):
     pp = Column(Float)
     replay = Column(Boolean)
 
-    def set_details(self, info):
+    def set_details(self, info: Score):
         self.score_id = info.id
         self.beatmap_id = info.beatmap_id
         self.user_id = info.user_id
@@ -142,11 +143,11 @@ class UserStats(Base):
     last_played = Column(Date)
     total_seconds_played = Column(Integer)
 
-    def __init__(self, user_id):
+    def __init__(self, user_id: int):
         self.user_id = user_id
 
     # Given a User object from the osu! database, set all fields on the mapped class
-    def set_details(self, info):
+    def set_details(self, info: User):
         stats = info.statistics
         self.count300 = stats.count_300
         self.count100 = stats.count_100
@@ -202,7 +203,7 @@ class RegisteredUser(Base):
     def __init__(self, user_info):
         self.set_all(user_info)
 
-    def set_all(self, user_info):
+    def set_all(self, user_info: User):
         self.user_id = user_info.id
         self.username = user_info.username
         self.country = user_info.country_code

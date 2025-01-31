@@ -1,10 +1,12 @@
+from collections.abc import Sequence
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
+import database.models
 from util import get_mode_table
 from typing import List
 from ossapi import Score
 
-def insert_scores(session: Session, scores: List[Score]):
+def insert_scores(session: Session, scores: List[Score]) -> bool:
     if not scores:
         return False
     try:
@@ -20,7 +22,7 @@ def insert_scores(session: Session, scores: List[Score]):
             print(str(score))
         return False
 
-def get_user_scores(session: Session, beatmap_id: int, user_id: int, mode: str or int, filters: tuple, metric: str):
+def get_user_scores(session: Session, beatmap_id: int, user_id: int, mode: str or int, filters: tuple, metric: str) -> Sequence[database.models.Score]:
     table = get_mode_table(mode)
     stmt = select(table).filter(
         and_(

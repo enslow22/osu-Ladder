@@ -15,7 +15,7 @@ from database.models import RegisteredUser, RegisteredUserTag, Score
 
 
 # TODO: hash the apikey before saving to db
-def register_user(session: Session, user_id: int, apikey: str | None, access_token: str | None = None, refresh_token: str | None = None, expires_at: datetime.datetime | None = None):
+def register_user(session: Session, user_id: int, apikey: str | None = None, access_token: str | None = None, refresh_token: str | None = None, expires_at: datetime.datetime | None = None):
     user = session.get(RegisteredUser, user_id)
     if user is None:
         user_info = get_user_info(user_id)
@@ -113,6 +113,7 @@ def refresh_tokens(session: Session, user: RegisteredUser | int):
             'scope': 'public'}
     r = requests.post('https://osu.ppy.sh/oauth/token', headers=headers, data=data)
     payload = r.json()
+    print(payload)
     if 'access_token' in payload:
         user.refresh_token = payload['refresh_token']
         user.access_token = payload['access_token']
@@ -138,4 +139,4 @@ if __name__ == '__main__':
     from ORM import ORM
     orm = ORM()
     session = orm.sessionmaker()
-    refresh_tokens(session, 10651409)
+    refresh_tokens(session, 4991273)
