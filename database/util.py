@@ -3,11 +3,12 @@ Contains helper functions which will be used in more than one service
 """
 import datetime
 import operator as op
-from models import OsuScore, TaikoScore, CatchScore, ManiaScore
+
 
 modes = ['osu', 'taiko', 'fruits', 'mania']
 
 def get_mode_table(mode: str or int):
+    from models import OsuScore, TaikoScore, CatchScore, ManiaScore
     match mode:
         case 'osu' | 0:
             return OsuScore
