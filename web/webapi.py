@@ -28,7 +28,7 @@ templates = Jinja2Templates(directory='web/frontend/templates')
 orm = ORM()
 tq = TaskQueue(orm.sessionmaker)
 
-app = FastAPI(docs_url=None, redoc_url=None)
+app = FastAPI(redoc_url=None)
 #app = FastAPI()
 
 @app.get("/", response_class=FileResponse)
@@ -104,19 +104,19 @@ def get_fetch_queue():
 app.include_router(
     auth.router,
     tags=["auth"],
-    dependencies=[Depends(verify_token)],
+    #dependencies=[Depends(verify_token)],
     )
 app.include_router(
     stats.router,
     prefix="/stats",
     tags=["stats"],
-    dependencies=[Depends(verify_token)],
+    #dependencies=[Depends(verify_token)],
 )
 app.include_router(
     admin.router,
     prefix="/admin",
     tags=["admin"],
-    dependencies=[Depends(verify_admin)],
+    #dependencies=[Depends(verify_admin)],
 )
 
 app.mount("/", StaticFiles(directory="web/frontend", html=True), name="web/frontend")
