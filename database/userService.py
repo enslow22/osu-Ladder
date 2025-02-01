@@ -92,7 +92,7 @@ def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, 
         return list(res)
     else:
         stmt = select(table).filter(getattr(table, 'user_id') == user_id).filter(*filters).order_by(
-            getattr(table, metric).desc()).limit(4 * number) # i hate subqueries im sorry i cant deal with this rn
+            getattr(table, metric).desc()).limit(number) # i hate subqueries im sorry i cant deal with this rn
         res = session.scalars(stmt).all()
         # I think i should make this a stored procedure.
         return list(res)

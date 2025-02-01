@@ -25,7 +25,8 @@ def top_n(user_id: int, mode: str or int = 'osu', filters: Optional[str] = None,
     return {"scores": a}
 
 @router.get('/profile_pp', status_code=status.HTTP_200_OK)
-def profile_pp(user_id: int, mode: str or int = 'osu', filters: Optional[str] = None, n: int = 100, bonus: bool = True):
-    scores = top_n(user_id, mode, filters, 'pp', n)['scores']
+def profile_pp(user_id: int, mode: str or int = 'osu', filters: Optional[str] = None, n: int = 100, bonus: bool = True, unique: bool = True):
+    n = min(100, n)  # 100 is the max number of maps
+    scores = top_n(user_id, mode, filters, 'pp', n, unique)['scores']
     total_pp = get_profile_pp(scores, bonus, n)
     return {"total_pp": total_pp, "scores": scores}
