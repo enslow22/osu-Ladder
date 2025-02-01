@@ -27,13 +27,15 @@ def get_user(user_id: int):
     return {"user": session.get(RegisteredUser, user_id)}
 
 @router.get('/scores', tags=['auth'])
-def get_score(beatmap_id: int, user_id: int, mode: str = 'osu', filters: Optional[str] = None, metric: str = 'pp'):
+def get_score(beatmap_id: int, user_id: int, mode: str or int = 'osu', filters: Optional[str] = None, metric: str = 'pp'):
     filters = parse_score_filters(mode, filters)
     """
     Fetches a user's scores on a beatmap
     """
     session = orm.sessionmaker()
-    return {"score": scoreService.get_user_scores(session, beatmap_id, user_id, mode, filters, metric)}
+    a = scoreService.get_user_scores(session, beatmap_id, user_id, mode, filters, metric)
+    session.close()
+    return {"scores": a}
 
 @router.post("/initial_fetch_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
