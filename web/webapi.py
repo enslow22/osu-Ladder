@@ -28,7 +28,8 @@ templates = Jinja2Templates(directory='web/frontend/templates')
 orm = ORM()
 tq = TaskQueue(orm.sessionmaker)
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
+#app = FastAPI()
 
 @app.get("/", response_class=FileResponse)
 def main_page(request: Request, authorization: RegisteredUserCompact = Depends(has_token)):
@@ -109,14 +110,13 @@ app.include_router(
     stats.router,
     prefix="/stats",
     tags=["stats"],
-    dependencies=[Depends(verify_token)]
+    dependencies=[Depends(verify_token)],
 )
 app.include_router(
     admin.router,
     prefix="/admin",
     tags=["admin"],
     dependencies=[Depends(verify_admin)],
-    responses={418: {"description": "I'm a teapot"}},
 )
 
 app.mount("/", StaticFiles(directory="web/frontend", html=True), name="web/frontend")
