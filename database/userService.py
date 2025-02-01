@@ -8,7 +8,7 @@ import os
 from typing import List
 from util import get_mode_table
 from osuApi import get_user_info
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from database.models import RegisteredUser, RegisteredUserTag, Score
@@ -38,7 +38,7 @@ def update_user_metadata(session: Session, user_id: int):
     if user is None:
         print('User not found')
         return False
-    user_info = osu_api.get_user_info(user_id)
+    user_info = get_user_info(user_id)
     user.set_all(user_info)
     session.commit()
     return True
@@ -70,7 +70,7 @@ def add_tags(session: Session, user_ids: List[int], tag:str):
         print('No action taken')
         return False
 
-def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, metric: str = 'pp', number: int = 100) -> List[Score]:
+def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, metric: str = 'pp', number: int = 100, unique: bool = True) -> List[Score]:
     """
     Runs (SELECT * FROM (table) WHERE user_id = user_id AND (filters) LIMIT (n) ORDER BY (metric) DESC)
 
@@ -79,15 +79,23 @@ def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, 
     :param filters: a tuple of filters
     :param metric:  a column to order by
     :param number:  the number of scores to return
+    :param unique:  Only pick one score per beatmap
     :return:        The top n scores matching the provided filters for the specified player
     """
     if not isinstance(filters, tuple):
         filters = tuple(filters)
     table = get_mode_table(mode)
-    stmt = select(table).filter(getattr(table, 'user_id') == user_id).filter(*filters).limit(number).order_by(getattr(table, metric).desc())
-    res = session.scalars(stmt).all()
-
-    return res
+    if not unique:
+        stmt = select(table).filter(getattr(table, 'user_id') == user_id).filter(*filters).order_by(
+            getattr(table, metric).desc()).limit(number)
+        res = session.scalars(stmt).all()
+        return list(res)
+    else:
+        stmt = select(table).filter(getattr(table, 'user_id') == user_id).filter(*filters).order_by(
+            getattr(table, metric).desc()).limit(4 * number) # i hate subqueries im sorry i cant deal with this rn
+        res = session.scalars(stmt).all()
+        # I think i should make this a stored procedure.
+        return list(res)
 
 def get_ids_from_tag(session: Session, group: str or List[int]) -> List[int] or None:
     # List of user_ids
