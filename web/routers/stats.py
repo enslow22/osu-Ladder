@@ -1,9 +1,10 @@
-from fastapi import APIRouter, status
-from typing import Optional
+from fastapi import APIRouter, status, Query
+from typing import Optional, List, Annotated
 from database.ORM import ORM
 from database.models import RegisteredUser
 from database.util import parse_score_filters
-from database.userService import get_top_n, get_profile_pp
+from database.userService import get_top_n, get_profile_pp, get_ids_from_tag
+from database.leaderboardService import group_leaderboard
 
 router = APIRouter()
 orm = ORM()
@@ -30,3 +31,13 @@ def profile_pp(user_id: int, mode: str or int = 'osu', filters: Optional[str] = 
     scores = top_n(user_id, mode, filters, 'pp', n, unique)['scores']
     total_pp = get_profile_pp(scores, bonus, n)
     return {"total_pp": total_pp, "scores": scores}
+
+@router.get('/group_leaderboard', status_code=status.HTTP_200_OK)
+def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | None, Query()] = None, group_tag: str = None, mode: str or int = 'osu', filters: Optional[str] = None, metric: str = 'pp', unique: bool = True):
+    filters = parse_score_filters(mode, filters)
+    session = orm.sessionmaker()
+    if users is None:
+        users = get_ids_from_tag(session, group_tag)
+    scores = group_leaderboard(session, users, beatmap_id, mode, filters, metric, unique)
+    session.close()
+    return {"Leaderboard for %s" % beatmap_id: scores}
