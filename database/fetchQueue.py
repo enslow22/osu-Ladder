@@ -54,7 +54,7 @@ class TaskQueue:
             return False
         catch_string = ' Also fetching catch converts.' if catch_converts else ''
         print('Adding %s to the fetch queue.%s' % (user.username, catch_string))
-        self.q.put((time.time()+bonus_priority*7200, user, catch_converts))
+        self.q.put((time.time()+bonus_priority*43200, user, catch_converts))
         if len(self.current) < NUM_THREADS and not self.q.empty():
             self.start()
         return True
