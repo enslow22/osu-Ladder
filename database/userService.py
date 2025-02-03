@@ -43,7 +43,22 @@ def update_user_metadata(session: Session, user_id: int) -> bool:
     session.commit()
     return True
 
-def add_tags(session: Session, user_ids: List[int], tag:str):
+# TODO: implement this on the database end as well. Will also need an orm mapped class in models.py
+def create_tag(session: Session, owner: int, tag: str) -> bool:
+    """
+
+    :param owner:   Who has management controls over the tag
+    :param tag:     String representation of the group name
+    :return:
+    """
+    # Check if tag exists
+
+    # Check if user owns more than 4 groups
+
+    # Make new tag and assign incremental id
+    return True
+
+def add_tags(session: Session, user_ids: List[int], tag:str) -> bool:
     if isinstance(user_ids, int):
         user_ids = [user_ids]
 
@@ -69,7 +84,8 @@ def add_tags(session: Session, user_ids: List[int], tag:str):
         print('No action taken')
         return False
 
-def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, mods: tuple, metric: str = 'pp', number: int = 100, unique: bool = True) -> List[Score]:
+# TODO unique has not been implemented yet
+def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, mods: tuple, metric: str = 'pp', number: int = 100, unique: bool = True, desc = True) -> List[Score]:
     """
     Runs (SELECT * FROM (table) WHERE user_id = user_id AND (filters) LIMIT (n) ORDER BY (metric) DESC)
 
@@ -80,6 +96,7 @@ def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, 
     :param metric:  a column to order by
     :param number:  the number of scores to return
     :param unique:  Only pick one score per beatmap
+    :param desc:    returns in descending metric if true, ascending if false
     :return:        The top n scores matching the provided filters for the specified player
     """
     if not isinstance(filters, tuple):
@@ -87,14 +104,19 @@ def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, 
     if not isinstance(mods, tuple):
         mods = tuple(mods)
     table = get_mode_table(mode)
+
+    sort_order = getattr(table, metric)
+    if desc:
+        sort_order = sort_order.desc()
+
     if not unique:
         stmt = select(table).filter(getattr(table, 'user_id') == user_id).filter(*filters).filter(*mods).order_by(
-            getattr(table, metric).desc()).limit(number)
+            sort_order).limit(number)
         res = session.scalars(stmt).all()
         return list(res)
     else:
         stmt = select(table).filter(getattr(table, 'user_id') == user_id).filter(*filters).filter(*mods).order_by(
-            getattr(table, metric).desc()).limit(number) # i hate subqueries im sorry i cant deal with this rn
+            sort_order).limit(number) # i hate subqueries im sorry i cant deal with this rn
         res = session.scalars(stmt).all()
         # I think i should make this a stored procedure.
         return list(res)

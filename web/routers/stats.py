@@ -18,15 +18,16 @@ def get_user(user_id: int):
     return {"user": orm.session.get(RegisteredUser, user_id)}
 
 @router.get('/top', status_code=status.HTTP_200_OK)
-def top_n(user_id: int, mode: Mode = 'osu', filters: str = None, mods: str = None, metric: str = 'pp', n: int = 100, unique: bool = True):
+def top_n(user_id: int, mode: Mode = 'osu', filters: str = None, mods: str = None, metric: str = 'pp', desc: bool = True, n: int = 100, unique: bool = True):
     """
     Gets the top n scores from the user (limit 100)
+    - **unique:** Return only one score per beatmap
     """
     filters = parse_score_filters(mode, filters)
     mods = parse_mod_filters(mode, mods)
     session = orm.sessionmaker()
     n = min(100, n) # 100 is the max number of maps
-    a = get_top_n(session, user_id, mode, filters, mods, metric, n, unique)
+    a = get_top_n(session, user_id, mode, filters, mods, metric, n, unique, desc)
     session.close()
     return {"scores": a}
 
@@ -34,9 +35,10 @@ def top_n(user_id: int, mode: Mode = 'osu', filters: str = None, mods: str = Non
 def profile_pp(user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, n: int = 100, bonus: bool = True, unique: bool = True):
     """
     Same as top but also returns a profile pp value according to the weightage system at https://osu.ppy.sh/wiki/en/Performance_points
+    - **unique:** Return only one score per beatmap
     """
     n = min(100, n)  # 100 is the max number of maps
-    scores = top_n(user_id, mode, filters, mods,'pp', n, unique)['scores']
+    scores = top_n(user_id, mode, filters, mods,'pp', True, n, unique)['scores']
     total_pp = get_profile_pp(scores, bonus, n)
     return {"total_pp": total_pp, "scores": scores}
 
@@ -44,6 +46,7 @@ def profile_pp(user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, 
 def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | None, Query()] = None, group_tag: str = None, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None,  metric: Annotated[Metric, Query()] = 'pp', desc: bool = True, unique: bool = True):
     """
     Given a beatmap_id and a list of users (or a Tag), construct a leaderboard
+    - **unique:** Return only one score per user
     """
     filters = parse_score_filters(mode, filters)
     mods = parse_mod_filters(mode, mods)

@@ -97,6 +97,8 @@ osu!lb stores the following data for every score in the database:
 ### Metrics:
 
 Metrics are how the returned data is sorted. You can sort the data by pp, stable_score, lazer_score, classic_score, accuracy, or date. 
+
+You can also sort by descending (default) or ascending
 """
 
 app = FastAPI(redoc_url=None, openapi_tags=tags_metadata, description=description)

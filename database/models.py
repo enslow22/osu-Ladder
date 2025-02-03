@@ -17,7 +17,6 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = 'sample_users'
 
-
 class BeatmapSet(Base):
     __tablename__ = 'osu_beatmapsets'
 
@@ -57,7 +56,7 @@ class Score(Base):
     count300 = Column(Integer)
     countmiss = Column(Integer)
     perfect = Column(Boolean)
-    enabled_mods = Column(Integer) # Comes from https://github.com/tybug/ossapi/blob/master/ossapi/mod.py (only stable)
+    enabled_mods = Column(String) # Comes from https://github.com/tybug/ossapi/blob/master/ossapi/mod.py (only stable)
     enabled_mods_settings = Column(JSON) # This comes from the response
     date = Column(DateTime)
     pp = Column(Float)
@@ -217,11 +216,12 @@ class RegisteredUserTag(Base):
     user_id = Column(Integer, primary_key=True)
     tag = Column(String, primary_key=True)
 
-# Takes a list of mods
-# If it's a stable (classic) score, it will have the classic mod
-# If it's a lazer score, it will not have the classic mod
-# If it's a lazer score, then mods may have modifiers
-# We could store this as a string. The most important part is that it is invertible.
-# I don't think there's a nice way to do this without violating db normalization
-# The settings will be stored as a json I guess
 
+# TODO Implement this as a table in the database
+class Tags(Base):
+    __tablename__ = 'group_tags'
+
+    tag_id = Column(Integer, primary_key=True)
+    tag_name = Column(String)
+    tag_owner = Column(Integer, ForeignKey('registered_users.user_id'))
+    date_created = Column(DateTime)
