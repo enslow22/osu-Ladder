@@ -1,12 +1,9 @@
 # Thank you MaxOhn for https://github.com/MaxOhn/scores-ws
 
 import asyncio
-import os
-
 from sqlalchemy import select
 from websockets.asyncio.client import connect
 import json
-import datetime
 from ossapi.ossapiv2 import Ossapi, Score
 
 # While `scores-ws` is already running...
@@ -55,15 +52,12 @@ def get_all_users(session):
 async def process_scores(websocket):
 
     try:
-        time = datetime.datetime.now()
         orm = ORM.ORM()
-        stmt = select(models.RegisteredUser.user_id)
         user_ids = get_all_users(orm.sessionmaker())
-        #print(user_ids)
         import dotenv
+        import time
         ossapi = Ossapi(os.getenv('CLIENT_ID'), os.getenv('CLIENT_SECRET'))
 
-        import time
         oldepoch = time.time()
         def minute_passed():
             return time.time() - oldepoch >= 60
@@ -73,9 +67,11 @@ async def process_scores(websocket):
             if score['user_id'] in user_ids:
                 session = orm.sessionmaker()
                 print(f'Found a score for {score["user_id"]}')
+
                 new_score = ossapi._instantiate_type(Score, score)
                 scoreService.insert_scores(session, [new_score])
                 session.close()
+
             # Update registered users every minute.
             if minute_passed():
                 oldepoch = time.time()
@@ -91,7 +87,6 @@ if __name__ == "__main__":
     import sys
     import os
 
-    # why
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'database')))
     import ORM
     import scoreService
