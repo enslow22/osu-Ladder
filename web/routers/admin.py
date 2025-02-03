@@ -1,6 +1,4 @@
-from typing import Annotated, List
-from fastapi.params import Query
-from web.apiModels import FilterParams, SortBy
+from typing import List
 from fastapi import APIRouter, status, Response
 from database.ORM import ORM
 import database.userService as userService
