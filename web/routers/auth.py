@@ -12,6 +12,9 @@ orm = ORM()
 
 @router.post("/logout")
 async def logout(token: Annotated[RegisteredUserCompact, Depends(verify_token)]):
+    """
+    Logs the current user out
+    """
     if not token:
         return {"message": "user not logged in"}
     response = RedirectResponse('/', status_code=302)
@@ -28,10 +31,10 @@ def get_user(user_id: int):
 
 @router.get('/scores', tags=['auth'])
 def get_score(beatmap_id: int, user_id: int, mode: str or int = 'osu', filters: Optional[str] = None, metric: str = 'pp'):
-    filters = parse_score_filters(mode, filters)
     """
     Fetches a user's scores on a beatmap
     """
+    filters = parse_score_filters(mode, filters)
     session = orm.sessionmaker()
     a = scoreService.get_user_scores(session, beatmap_id, user_id, mode, filters, metric)
     session.close()
@@ -39,6 +42,9 @@ def get_score(beatmap_id: int, user_id: int, mode: str or int = 'osu', filters: 
 
 @router.post("/initial_fetch_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
+    """
+    Adds the authenticated user to the fetch queue
+    """
     from web.webapi import tq
     if tq.enqueue(token['user_id'], catch_converts):
         return {'message': 'success'}

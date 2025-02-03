@@ -3,10 +3,13 @@ Contains helper functions which will be used in more than one service
 """
 import datetime
 import operator as op
+import re
+from typing import List
 
 
 modes = ['osu', 'taiko', 'fruits', 'mania']
 
+# Given a mode, return the corresponding table
 def get_mode_table(mode: str or int):
     from models import OsuScore, TaikoScore, CatchScore, ManiaScore
     match mode:
@@ -19,22 +22,20 @@ def get_mode_table(mode: str or int):
         case 'mania' | 3:
             return ManiaScore
 
+# Parses the mod list from the Ossapi score list
 def parse_modlist(modlist: list):
     if not modlist:
         return '', None
-    string = ''
-    for mod in modlist:
-        string += mod.acronym
+    string = ' '.join(modlist)
 
-    # Figure out if classic
-    if modlist[-1].acronym == 'CL':
+    newmodlist = []
+    for mod in modlist:
+        if mod.settings is None:
+            continue
+        newmodlist.append((mod.acronym, mod.settings))
+    if len(newmodlist) == 0:
         return string, None
-    else:
-        newmodlist = []
-        for mod in modlist:
-            newmodlist.append((mod.acronym, mod.settings))
-        tup = (string, newmodlist)
-        return tup
+    return string, newmodlist
 
 def parse_score_filters(mode: str or int, filters: str):
     """
@@ -47,7 +48,7 @@ def parse_score_filters(mode: str or int, filters: str):
     This should return a 3-tuple (OsuScore.date<'2010-12-12', OsuScore.pp>100, OsuScore.replay==1)
 
     :param mode     the game mode
-    :param kwargs:  filters
+    :param filters  the filters as a string
     :return:
     """
 
@@ -71,22 +72,22 @@ def parse_score_filters(mode: str or int, filters: str):
     ">=": op.ge,
     }
 
+    # stable_score, lazer_score, classic_score, maxcombo, rank, count50, count100, count300, countmiss, perfect,
+    #     enabled_mods, enabled_mods_settings, date, pp, replay
     field_map = {
         "date": table.date,
         "pp": table.pp,
         "rank": table.rank,
         "perfect": table.perfect,
-        "max_combo": table.maxcombo
-    }
-
-    # We can check that things are properly formatted and change them if they aren't
-    # TODO: this
-    formats = {
-        "date": lambda x: datetime.datetime.strftime(x, "%Y-%m-%d"),
-        "pp": lambda x: float(x),
-        "rank": lambda x: x,
-        "perfect": lambda x: int(x),
-        "max_combo": lambda x: int(x)
+        "max_combo": table.maxcombo,
+        "replay": table.replay,
+        "stable_score": table.stable_score,
+        "lazer_score": table.lazer_score,
+        "classic_score": table.classic_score,
+        "count_50": table.count50,
+        "count_100": table.count100,
+        "count_300": table.count300,
+        "count_miss": table.countmiss,
     }
 
     r = []
@@ -95,7 +96,107 @@ def parse_score_filters(mode: str or int, filters: str):
         #print(formats[f[0]](f[2]))
     return tuple(r)
 
-if __name__ == '__main__':
+# Given a mode, return the correct list order
+def mod_order(mode: str or int):
+    '''
+    with open('mods.json') as f:
+        import json
+        data = json.load(f)
 
-    a = parse_score_filters('osu', 'date<2024-10-10')
+        if isinstance(mode, str):
+            mod_data = list(filter(lambda x: x['Name'] == mode, data))[0]['Mods']
+        else:
+            mod_data = list(filter(lambda x: x['RulesetID'] == mode, data))[0]['Mods']
+
+        mod_order = [x['Acronym'] for x in mod_data]
+
+        return mod_order
+    '''
+    match mode:
+        case 'osu' | 0:
+            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'BL', 'ST', 'AC', 'TP', 'DA', 'CL', 'RD', 'MR', 'AL', 'SG', 'AT', 'CN', 'RX', 'AP', 'SO', 'TR', 'WG', 'SI', 'GR', 'DF', 'WU', 'WD', 'TC', 'BR', 'AD', 'MU', 'NS', 'MG', 'RP', 'AS', 'FR', 'BU', 'SY', 'DP', 'BM', 'TD', 'SV2']
+        case 'taiko' | 1:
+            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'AC', 'RD', 'DA', 'CL', 'SW', 'SG', 'CS', 'AT', 'CN', 'RX', 'WU', 'WD', 'MU', 'AS', 'SV2']
+        case 'fruits' | 2:
+            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'AC', 'DA', 'CL', 'MR', 'AT', 'CN', 'RX', 'WU', 'WD', 'FF', 'MU', 'NS', 'SV2']
+        case 'mania' | 3:
+            return ['EZ', 'NF', 'HT', 'DC', 'NR', 'HR', 'SD', 'PF', 'DT', 'NC', 'FI', 'HD', 'CO', 'FL', 'AC', 'RD', 'DS', 'MR', 'DA', 'CL', 'IN', 'CS', 'HO', '1K', '2K', '3K', '4K', '5K', '6K', '7K', '8K', '9K', '10K', 'AT', 'CN', 'WU', 'WD', 'MU', 'AS', 'SV2']
+    return
+
+# Given a mode and a list of mods, return the sorted list
+def sort_mods(mode: str or int, mod_list: List[str]):
+    order = mod_order(mode)
+
+    d = {v: i for i, v in enumerate(order)}
+    r = sorted(mod_list, key=lambda v: d[v])
+
+    return r
+
+def parse_mod_filters(mode: str or int, modstring: str):
+    """
+
+    :param mode:        the mode
+    :param modstring:   A string representing mods. +mods, -mods, or !mods
+    :return:
+
+    NOTES:
+    NM scores in lazer have no mods.    Looks like ''
+    NM scores in classic have CL        Looks like 'CL'
+    """
+    from sqlalchemy import not_
+    if modstring is None:
+        return ()
+
+    modstring = "".join(modstring.split())
+    table = get_mode_table(mode)
+
+    # Exact
+    if modstring[0] == '!':
+        # Arrange mods in the right order.
+        # ex: ['HD', 'DT'] -> ['HD', 'DT'] and ['DT', 'HD'] -> ['HD', 'DT']
+        #return (op.eq(table.enabled_mods, mods),)
+        mods = modstring[1:]
+        mods = [mods[i:i + 2] for i in range(0, len(mods), 2)]
+        mods = sort_mods(mode, mods)
+        return (op.eq(table.enabled_mods, ' '.join(mods)),)
+
+    # Find + and -
+    matches = re.findall(r'([\-\+]\w+)', modstring)
+    filters = []
+    for match in matches:
+        # Including
+        if match[0] == '+':
+            mods = match[1:]
+            mods = [mods[i:i + 2] for i in range(0, len(mods), 2)]
+            print(mods)
+            for mod in mods:
+                filters.append(table.enabled_mods.icontains(mod))
+        # Excluding
+        else:
+            mods = match[1:]
+            mods = [mods[i:i + 2] for i in range(0, len(mods), 2)]
+            print(mods)
+            for mod in mods:
+                filters.append(not_(table.enabled_mods.icontains(mod)))
+
+    return filters
+
+if __name__ == '__main__':
+    import random
+
+    a = parse_mod_filters('osu', '!HDHRDT')
+    b = parse_mod_filters('osu', '-HDHRDT')
+    c = parse_mod_filters('osu', '+HDHRDT')
+    c = parse_mod_filters('osu', '+HD-HRDT')
+    c = parse_mod_filters('osu', '+HD-HR+DT')
+    c = parse_mod_filters('osu', '+HD-HR+DT')
+    c = parse_mod_filters('osu', '-HD+HRDT')
+    d = parse_mod_filters('osu', '!EZHD')
+    e = parse_mod_filters('osu', '!HDEZ')
+    print(a)
+    print(b)
+    print(c)
+    print(d)
+    print(e)
+    #a = parse_score_filters('osu', 'date<2024-10-10')
     #parse_score_filters('osu', 'date<2024-12-31 rank=S')
