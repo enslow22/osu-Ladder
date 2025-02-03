@@ -7,25 +7,29 @@ from database.models import RegisteredUser
 
 
 
-def group_leaderboard(session: Session, users: List[int], beatmap_id: int, mode: str or int, filters: tuple, metric: str, unique: bool = True) -> List[Score]:
+def group_leaderboard(session: Session, users: List[int], beatmap_id: int, mode: str or int, filters: tuple, mods: tuple, metric: str, unique: bool = True) -> List[Score]:
     """
     :param users:       The tag. If None, include all users
     :param beatmap_id:  The id of the map to generate the leaderboard
     :param mode:        The mode of the leaderboard
     :param filters:     Any additional filters
+    :param mods:        Any mod filters
     :param metric:      The column to order by
     :param unique:      One score per user?
     :return:            A list of scores in
     """
     if not isinstance(filters, tuple):
         filters = tuple(filters)
+    if not isinstance(mods, tuple):
+        mods = tuple(mods)
+
     table = get_mode_table(mode)
     stmt = select(table).filter(
         and_(
             getattr(table, 'beatmap_id') == beatmap_id,
             getattr(table, 'user_id').in_(users)
         )
-    ).filter(*filters).order_by(getattr(table, metric).desc())
+    ).filter(*filters).filter(*mods).order_by(getattr(table, metric).desc())
     lb = list(session.scalars(stmt).all())
 
     if unique:
