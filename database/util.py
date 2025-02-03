@@ -1,11 +1,10 @@
 """
 Contains helper functions which will be used in more than one service
 """
-import datetime
 import operator as op
 import re
 from typing import List
-
+import ossapi
 
 modes = ['osu', 'taiko', 'fruits', 'mania']
 
@@ -22,11 +21,14 @@ def get_mode_table(mode: str or int):
         case 'mania' | 3:
             return ManiaScore
 
-# Parses the mod list from the Ossapi score list
-def parse_modlist(modlist: list):
+# Parses the mod list from the Ossapi score object
+def parse_modlist(modlist: List[ossapi.models.NonLegacyMod]):
     if not modlist:
         return '', None
-    string = ' '.join(modlist)
+    string = ''
+    for mod in modlist:
+        string += '%s ' % mod.acronym
+    string.strip()
 
     newmodlist = []
     for mod in modlist:
@@ -98,6 +100,15 @@ def parse_score_filters(mode: str or int, filters: str):
 
 # Given a mode, return the correct list order
 def mod_order(mode: str or int):
+    match mode:
+        case 'osu' | 0:
+            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'BL', 'ST', 'AC', 'TP', 'DA', 'CL', 'RD', 'MR', 'AL', 'SG', 'AT', 'CN', 'RX', 'AP', 'SO', 'TR', 'WG', 'SI', 'GR', 'DF', 'WU', 'WD', 'TC', 'BR', 'AD', 'MU', 'NS', 'MG', 'RP', 'AS', 'FR', 'BU', 'SY', 'DP', 'BM', 'TD', 'SV2']
+        case 'taiko' | 1:
+            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'AC', 'RD', 'DA', 'CL', 'SW', 'SG', 'CS', 'AT', 'CN', 'RX', 'WU', 'WD', 'MU', 'AS', 'SV2']
+        case 'fruits' | 2:
+            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'AC', 'DA', 'CL', 'MR', 'AT', 'CN', 'RX', 'WU', 'WD', 'FF', 'MU', 'NS', 'SV2']
+        case 'mania' | 3:
+            return ['EZ', 'NF', 'HT', 'DC', 'NR', 'HR', 'SD', 'PF', 'DT', 'NC', 'FI', 'HD', 'CO', 'FL', 'AC', 'RD', 'DS', 'MR', 'DA', 'CL', 'IN', 'CS', 'HO', '1K', '2K', '3K', '4K', '5K', '6K', '7K', '8K', '9K', '10K', 'AT', 'CN', 'WU', 'WD', 'MU', 'AS', 'SV2']
     '''
     with open('mods.json') as f:
         import json
@@ -112,16 +123,6 @@ def mod_order(mode: str or int):
 
         return mod_order
     '''
-    match mode:
-        case 'osu' | 0:
-            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'BL', 'ST', 'AC', 'TP', 'DA', 'CL', 'RD', 'MR', 'AL', 'SG', 'AT', 'CN', 'RX', 'AP', 'SO', 'TR', 'WG', 'SI', 'GR', 'DF', 'WU', 'WD', 'TC', 'BR', 'AD', 'MU', 'NS', 'MG', 'RP', 'AS', 'FR', 'BU', 'SY', 'DP', 'BM', 'TD', 'SV2']
-        case 'taiko' | 1:
-            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'AC', 'RD', 'DA', 'CL', 'SW', 'SG', 'CS', 'AT', 'CN', 'RX', 'WU', 'WD', 'MU', 'AS', 'SV2']
-        case 'fruits' | 2:
-            return ['EZ', 'NF', 'HT', 'DC', 'HR', 'SD', 'PF', 'DT', 'NC', 'HD', 'FL', 'AC', 'DA', 'CL', 'MR', 'AT', 'CN', 'RX', 'WU', 'WD', 'FF', 'MU', 'NS', 'SV2']
-        case 'mania' | 3:
-            return ['EZ', 'NF', 'HT', 'DC', 'NR', 'HR', 'SD', 'PF', 'DT', 'NC', 'FI', 'HD', 'CO', 'FL', 'AC', 'RD', 'DS', 'MR', 'DA', 'CL', 'IN', 'CS', 'HO', '1K', '2K', '3K', '4K', '5K', '6K', '7K', '8K', '9K', '10K', 'AT', 'CN', 'WU', 'WD', 'MU', 'AS', 'SV2']
-    return
 
 # Given a mode and a list of mods, return the sorted list
 def sort_mods(mode: str or int, mod_list: List[str]):
