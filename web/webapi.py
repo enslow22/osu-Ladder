@@ -181,22 +181,24 @@ def get_fetch_queue():
                                                                 'catch_converts': x[2],
                                                                 'num_maps': 'nan'} for x in user_queue]}
 
+# TODO u can check user agent + a custom header as a middlewares investigate
+
 app.include_router(
     auth.router,
     tags=["auth"],
-    #dependencies=[Depends(verify_token)],
+    dependencies=[Depends(verify_token)],
     )
 app.include_router(
     stats.router,
     prefix="/stats",
     tags=["stats"],
-    #dependencies=[Depends(verify_token)],
+    dependencies=[Depends(verify_token)],
 )
 app.include_router(
     admin.router,
     prefix="/admin",
     tags=["admin"],
-    #dependencies=[Depends(verify_admin)],
+    dependencies=[Depends(verify_admin)],
 )
 
 app.mount("/", StaticFiles(directory="web/frontend", html=True), name="web/frontend")
