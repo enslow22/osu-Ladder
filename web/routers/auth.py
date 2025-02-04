@@ -46,6 +46,10 @@ def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)]
     Adds the authenticated user to the fetch queue
     """
     from web.webapi import tq
+
+    # See if they have 2 days on catch playtime
+    if token['catch_playtime'] < 172800:
+        catch_converts = False
     if tq.enqueue(token['user_id'], catch_converts):
         return {'message': 'success'}
     return {'message': 'fail'}

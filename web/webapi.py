@@ -149,7 +149,7 @@ async def auth_via_osu(code: str):
         expires_in = r['expires_in']
 
         headers['Authorization'] =  'Bearer %s' % r['access_token']
-        r = requests.get('https://osu.ppy.sh/api/v2/me/osu', headers=headers)
+        r = requests.get('https://osu.ppy.sh/api/v2/me/fruits', headers=headers)
         user_data = r.json()
         print('Success! %s has successfully signed in with osu oauth.' % user_data['username'])
 
@@ -159,7 +159,7 @@ async def auth_via_osu(code: str):
         session = orm.sessionmaker()
         user = userService.register_user(session, user_data['id'], apikey, access_token=access_token, refresh_token=refresh_token, expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
 
-        access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey})
+        access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey, 'catch_playtime': user_data['statistics']['play_time']})
         response = RedirectResponse(url='/')
         response.set_cookie(key='session_token', value=access_token, httponly=True, secure=True)
 
