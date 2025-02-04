@@ -75,15 +75,16 @@ class TaskQueue:
             if task['user_id'] == user.user_id:
                 task['num_maps'] = 'Calculating'
 
+        auth_osu_api = OsuApiAuthService(user.user_id, user.access_token)
+
         catch_string = ' Also fetching catch converts.' if catch_converts else ''
         print('Starting initial_fetch for %s.%s' % (user.username, catch_string))
 
         session = self.sessionmaker()
         if user.expires_at < datetime.datetime.now():
             refresh_tokens(session, user)
-        auth_osu_api = OsuApiAuthService(user.user_id, user.access_token)
 
-        print('%s accessed the osu api with access_token %s' % (user.username, user.access_token))
+        print('%s accessed the osu api' % user.username)
 
         most_played = auth_osu_api.get_all_played_maps()
         most_played = [{'beatmap_id': x.beatmap_id,
