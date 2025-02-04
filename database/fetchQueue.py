@@ -112,12 +112,16 @@ class TaskQueue:
                 # If the map has converts and the user wants converts, then get those as well.
                 if catch_converts and beatmap['mode'] == 'osu':
                     new_scores += auth_osu_api.get_user_scores_on_map(beatmap['beatmap_id'], mode='fruits')
-                insert_scores(self.sessionmaker(), new_scores)
+                temp_session = self.sessionmaker()
+                insert_scores(temp_session, new_scores)
+                temp_session.close()
                 for task in self.current:
                     if task['user_id'] == user.user_id:
                         task['num_maps'] = len(most_played)
 
             user.last_updated = datetime.datetime.now()
+            session.commit()
+            session.close()
             for task in self.current:
                 if task['user_id'] == user.user_id:
                     self.current.remove(task)
@@ -139,7 +143,6 @@ if __name__ == '__main__':
 
     tq.enqueue(4991273, False)
     tq.enqueue(10651409, False)
-    #tq.enqueue(3634152, False)
 
     while True:
         print(tq.current)
