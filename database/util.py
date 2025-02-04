@@ -28,7 +28,7 @@ def parse_modlist(modlist: List[ossapi.models.NonLegacyMod]):
     string = ''
     for mod in modlist:
         string += '%s ' % mod.acronym
-    string.strip()
+    string = string.strip()
 
     newmodlist = []
     for mod in modlist:
