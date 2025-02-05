@@ -1,6 +1,8 @@
 import os
 from datetime import timedelta, datetime
-from fastapi import Request, HTTPException, status
+from typing import Annotated
+
+from fastapi import Request, HTTPException, status, Header
 from pydantic import BaseModel
 import jwt
 
@@ -34,6 +36,12 @@ def has_token(req: Request) -> RegisteredUserCompact | bool:
     return payload
 
 def verify_token(req: Request) -> RegisteredUserCompact:
+    if req.headers.get('X-Authorization') == os.getenv('HARUHIME_KEY'):
+        from database.ORM import ORM
+        from database.models import RegisteredUser
+        orm = ORM()
+        haruhime = orm.session.get(RegisteredUser, 12231334)
+        return {'user_id': haruhime.user_id, 'username': haruhime.username, 'avatar_url': haruhime.avatar_url, 'apikey': haruhime.apikey, 'catch_playtime': 172800}
     token = req.cookies.get('session_token')
     if token is None:
         raise credentials_exception
