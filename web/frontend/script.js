@@ -1,7 +1,3 @@
-function submit() {
-    alert("hi")
-}
-
 function getCookie() {
     value_or_null = (document.cookie.match(/^(?:.*;)?\s*session\s*=\s*([^;]+)(?:.*)?$/)||[,null])[1]
     console.log(value_or_null)
@@ -49,16 +45,18 @@ async function fetchQueue() {
     //queue = [{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true}]
     fetch_queue = document.getElementById('fetch_queue_container')
 
-    headers = '<tr><th>User Id</th><th>Username</th><th>Catch Converts?</th><th>Maps Left</th></tr>'
+    headers = '<tr><th>User Id</th><th>Username</th><th>Catch Converts?</th><th>Progress</th></tr>'
 
     queue_list = []
 
     for (let i = 0; i < current.length; i++) {
+        total_maps = current[i].total_maps
+        finished_maps = current[i].total_maps - current[i].num_maps
         queue_list.push('<tr>'+
         '<td>'+String(current[i].username)+'</td>'+
         '<td>'+String(current[i].user_id)+'</td>'+
         '<td>'+String(current[i].catch_converts)+'</td>'+
-        '<td>'+String(current[i].num_maps)+'</td></tr>')
+        '<td>'+String(finished_maps)+' / '+String(total_maps)+' ('+parseFloat( finished_maps / total_maps * 100).toFixed(2)+'%)'+'</td></tr>')
     }
 
     for (let i = 0; i < queue.length; i++) {
@@ -68,8 +66,6 @@ async function fetchQueue() {
         '<td>'+String(queue[i].catch_converts)+'</td><td> </td></tr>')
     }
 
-    // console.log(queue_list)
-    console.log(headers + String(queue_list))
     fetch_queue.innerHTML = headers + queue_list.join('')
 }
 

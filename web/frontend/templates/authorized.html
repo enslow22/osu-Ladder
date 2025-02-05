@@ -10,23 +10,10 @@
 <div class="absolute top-0 z-[-2] h-screen w-screen bg-neutral-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
 
 <div class="grid h-screen grid-cols-6 gap-4 bg-linear-to-b from-blue-400 to-pink-300 pb-6 ">
-  <div class="col-span-4 col-start-2 content-center ">
+  <div class="col-span-4 col-start-2 content-center">
     <h1 class="text-center font-sans text-5xl font-bold text-gray-200 subpixel-antialiased drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,1)]">Welcome {{ username }}!</h1>
   </div>
-  <div class="col-start-1 col-end-3 m-2 rounded-2xl p-1 outline-2 outline-gray-300 max-h-72 px-6 text-sm text-gray-200">
-
-     <p>osu!LB is a scores fetcher, tracker, and database.</p>
-    <ul class="list-disc">
-      <li>Automatic score fetching</li>
-      <li>Groups</li>
-      <li>Filtering by mods</li>
-      <li>Filtering by other data</li>
-      <li>Creating filtered leaderboards</li>
-      <li>Filtered top 100</li>
-    </ul>
-
-  </div>
-  <div class="col-start-3 col-end-5 m-2 rounded-2xl p-1 outline-2 outline-gray-300 max-h-72">
+  <div class="col-start-1 col-end-3 m-2 rounded-2xl p-1 outline-2 outline-gray-300 max-h-72">
     <div class="text-md mt-3 items-center justify-center gap-x-1 rounded-xl border-gray-200 bg-pink-300 p-2 text-center align-middle font-sans font-bold text-gray-100 subpixel-antialiased shadow-lg shadow-gray-500/40">
       <input class="size-4 accent-blue-500" type="checkbox" id="catch_converts" value="true" />
       <label for="catch_converts">Include Catch Converts</label>
@@ -41,11 +28,10 @@
       <button class="text-md my-1 cursor-pointer rounded-xl bg-pink-300 p-2 text-center font-sans font-bold text-gray-100 subpixel-antialiased shadow-md shadow-gray-500/40 transition delay-75 duration-300 ease-in-out hover:bg-pink-400" onclick="logout()">Log Out</button>
     </div>
   </div>
-  <div class="col-span-2 col-end-7 m-2 rounded-2xl p-1 outline-2 outline-gray-300 max-h-72 overflow-y-auto relative flex flex-col text-gray-200">
+  <div class="col-start-4 col-span-4 m-2 rounded-2xl p-1 outline-2 outline-gray-300 max-h-72 overflow-y-auto relative flex flex-col text-gray-200">
       <table id="fetch_queue_container" class="table-auto text-center overflow-y-scroll text-xs border-collapse">
       </table>
   </div>
-  <div></div>
 </div>
 
 <div class="fixed bottom-0 flex w-full justify-center gap-7 rounded-t-xl bg-gray-200/45 py-1.5">
