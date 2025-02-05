@@ -1,20 +1,17 @@
 import datetime
-from fastapi import FastAPI, status, Query, Response, Request, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import FastAPI, status, Request, Depends
 from fastapi.templating import Jinja2Templates
 from starlette.responses import RedirectResponse, FileResponse
 import requests
 from hashlib import sha256
 from starlette.staticfiles import StaticFiles
 from routers import admin, auth, stats
-from pydantic import BaseModel
 from dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 from database.ORM import ORM
 from database.fetchQueue import TaskQueue
 import database.userService as userService
 import dotenv
 import os
-from typing import Union, List
 
 dotenv.load_dotenv('../database/.env')
 webclient_id = os.getenv('WEBCLIENT_ID')
@@ -90,7 +87,8 @@ osu!lb stores the following data for every score in the database:
 | count_100     | int                                            | The number of 100s                                                                             |
 | count_300     | int                                            | The number of 300s                                                                             |
 
-- You can filter through these with operators: (=, !=, >, <, <=, >=)
+- You can filter through these with operators: (=, !=, >, <, <=, >=, /)
+- / represents the contains operator and it is used only for rank. The string rank/(XHSH) will only return scores that are hidden S or hidden SS
 - For dates, you can also compare with the format "YYYY-MM-DD" (e.g. date<2024-07-27 will return all scores older than July 27th 2024, 00:00:00)
 - You can add multiple filters by separating them with withspace or commas (e.g. pp<1000 pp>800 date<2023-01-01 will return all scores earlier than 2023 with pp values between 800 and 1000)
 
@@ -157,7 +155,7 @@ async def auth_via_osu(code: str):
         apikey = sha256((static_secret + str(user_data['id'])).encode('utf-8')).hexdigest()
 
         session = orm.sessionmaker()
-        user = userService.register_user(session, user_data['id'], apikey, access_token=access_token, refresh_token=refresh_token, expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
+        success, user = userService.register_user(session, user_data['id'], apikey, access_token=access_token, refresh_token=refresh_token, expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
 
         access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey, 'catch_playtime': user_data['statistics']['play_time']})
         response = RedirectResponse(url='/')
@@ -179,7 +177,8 @@ def get_fetch_queue():
     return {'current': copy.deepcopy(tq.current), 'in queue': [{'username': x[1].username,
                                                                 'user_id': x[1].user_id,
                                                                 'catch_converts': x[2],
-                                                                'num_maps': 'nan'} for x in user_queue]}
+                                                                'num_maps': 'Calculating',
+                                                                'total_map': 'Calculating'} for x in user_queue]}
 
 # TODO u can check user agent + a custom header as a middlewares investigate
 

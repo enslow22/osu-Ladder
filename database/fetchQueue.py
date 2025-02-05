@@ -2,7 +2,7 @@ import multiprocessing.pool
 import time
 import datetime
 import queue
-from database.userService import refresh_tokens, register_user
+from database.userService import refresh_tokens
 from database.osuApiAuthService import OsuApiAuthService
 from database.scoreService import insert_scores
 from database.ORM import ORM
@@ -64,17 +64,14 @@ class TaskQueue:
         self.current.append({'user_id': user.user_id,
                              'username': user.username,
                              'catch_converts': catch_converts,
-                             'num_maps': float('nan')})
+                             'num_maps': 'Calculating',
+                             'total_maps': 'Calculating'})
         self.pool.apply_async(self.process, args=(user, catch_converts))
         #self.pool.apply_async(self.test, args=(user, catch_converts))
         if len(self.current) < NUM_THREADS and not self.q.empty():
             self.start()
 
     def process(self, user: RegisteredUser, catch_converts: bool):
-        for task in self.current:
-            if task['user_id'] == user.user_id:
-                task['num_maps'] = 'Calculating'
-
         auth_osu_api = OsuApiAuthService(user.user_id, user.access_token)
 
         catch_string = ' Also fetching catch converts.' if catch_converts else ''
@@ -96,6 +93,7 @@ class TaskQueue:
         for task in self.current:
             if task['user_id'] == user.user_id:
                 task['num_maps'] = len(most_played)
+                task['total_maps'] = len(most_played)
 
 
         print('Beginning fetch for %s!%s They have %s maps in their most played.' % (
