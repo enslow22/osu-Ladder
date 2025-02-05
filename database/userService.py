@@ -13,20 +13,19 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from database.models import RegisteredUser, RegisteredUserTag, Score
 
-
-# TODO: hash the apikey before saving to db
-def register_user(session: Session, user_id: int, apikey: str | None = None, access_token: str | None = None, refresh_token: str | None = None, expires_at: datetime.datetime | None = None) -> RegisteredUser:
+def register_user(session: Session, user_id: int, apikey: str | None = None, access_token: str | None = None, refresh_token: str | None = None, expires_at: datetime.datetime | None = None) -> (bool, RegisteredUser):
     user = session.get(RegisteredUser, user_id)
-    if user is None:
-        user_info = get_user_info(user_id)
-        user = RegisteredUser(user_info)
-        session.add(user)
+    if user:
+        return False, user
+    user_info = get_user_info(user_id)
+    user = RegisteredUser(user_info)
+    session.add(user)
     user.apikey = apikey
     user.access_token = access_token
     user.refresh_token = refresh_token
     user.expires_at = expires_at
     session.commit()
-    return user
+    return True, user
 
 def get_user_from_apikey(session: Session, apikey) -> RegisteredUser or None:
     stmt = select(RegisteredUser).filter(RegisteredUser.apikey == apikey)

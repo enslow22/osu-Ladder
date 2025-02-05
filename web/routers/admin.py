@@ -13,7 +13,8 @@ async def add_registered_user(user_id: int, response: Response):
     """
     Register a new user
     """
-    if userService.register_user(session=orm.sessionmaker(), user_id=user_id, apikey=None):
+    success, user = userService.register_user(orm.sessionmaker(), user_id)
+    if success:
         return {"message": "%s registered to database" % str(user_id)}
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
