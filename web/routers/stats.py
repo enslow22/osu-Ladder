@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Query
+from fastapi import APIRouter, status, Query, Request
 from typing import Optional, List, Annotated
 from database.ORM import ORM
 from database.models import RegisteredUser
@@ -11,11 +11,11 @@ router = APIRouter()
 orm = ORM()
 
 @router.get('/test')
-def get_user(user_id: int):
+def get_user(req: Request, user_id: int):
     """
     Fetches a user from the database from their user_id
     """
-    return {"user": orm.session.get(RegisteredUser, user_id)}
+    return {"user": orm.session.get(RegisteredUser, user_id).username, "headers_given": req.headers}
 
 @router.get('/top', status_code=status.HTTP_200_OK)
 def top_n(user_id: int, mode: Mode = 'osu', filters: str = None, mods: str = None, metric: str = 'pp', desc: bool = True, n: int = 100, unique: bool = True):

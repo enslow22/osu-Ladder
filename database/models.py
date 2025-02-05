@@ -215,13 +215,14 @@ class RegisteredUserTag(Base):
     __tablename__ = 'registered_user_tags'
     user_id = Column(Integer, primary_key=True)
     tag = Column(String, primary_key=True)
+    mod = Column(Boolean)
+    date_added = Column(DateTime)
 
 
-# TODO Implement this as a table in the database
 class Tags(Base):
     __tablename__ = 'group_tags'
 
-    tag_id = Column(Integer, primary_key=True)
-    tag_name = Column(String)
+    tag_id = Column(Integer, primary_key=True, autoincrement=True)
+    tag_name = Column(String, primary_key=True)
     tag_owner = Column(Integer, ForeignKey('registered_users.user_id'))
     date_created = Column(DateTime)
