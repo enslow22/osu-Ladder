@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, status, Query
 from starlette.responses import RedirectResponse
-from typing import Optional, Annotated
+from typing import Optional, Annotated, List
 from web.dependencies import RegisteredUserCompact, verify_token
 from database.ORM import ORM
 from database.models import RegisteredUser
 import database.scoreService as scoreService
+from database.tagService import create_tag
 from database.util import parse_score_filters
 
 router = APIRouter()
@@ -53,3 +54,37 @@ def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)]
     if tq.enqueue(token['user_id'], catch_converts):
         return {'message': 'success'}
     return {'message': 'fail'}
+
+@router.post("/create_new_tag", status_code=status.HTTP_201_CREATED)
+def create_new_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str):
+    session = orm.sessionmaker()
+    if create_tag(session, token['user_id'], tag_name):
+        return {"message": "Success!"}
+    return {"message": "Something went wrong. Maybe the tag already exists or you have more than 4 tags."}
+
+# TODO
+@router.post("/delete_tag", status_code=status.HTTP_202_ACCEPTED)
+def delete_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str):
+    pass
+
+# TODO
+@router.post("/add_users_to_tag", status_code=status.HTTP_201_CREATED)
+def add_users_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: List[int]):
+
+    pass
+
+# TODO
+@router.post("/remove_users_from_tag", status_code=status.HTTP_202_ACCEPTED)
+def remove_users_from_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: List[int]):
+
+    pass
+
+# TODO
+@router.post("/add_tag_mods", status_code=status.HTTP_202_ACCEPTED)
+def add_mods_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: List[int]):
+    pass
+
+# TODO
+@router.post("/remove_tag_mods", status_code=status.HTTP_202_ACCEPTED)
+def add_mods_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: List[int]):
+    pass
