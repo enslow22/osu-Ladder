@@ -63,7 +63,7 @@ def parse_score_filters(mode: str or int, filters: str):
 
     all_filters = re.split(r',|\s', filters)
     all_filters = [x.strip() for x in all_filters]
-    all_filters = [re.split('([<>=!])+', x) for x in all_filters]
+    all_filters = [re.split('([<>=!/])+', x) for x in all_filters]
 
     op_map = {
     "=": op.eq,
@@ -72,6 +72,7 @@ def parse_score_filters(mode: str or int, filters: str):
     "<": op.lt,
     "<=": op.le,
     ">=": op.ge,
+    "/": op.contains
     }
 
     # stable_score, lazer_score, classic_score, maxcombo, rank, count50, count100, count300, countmiss, perfect,
@@ -94,8 +95,14 @@ def parse_score_filters(mode: str or int, filters: str):
 
     r = []
     for f in all_filters:
+        if op_map[f[1]] == op.contains:
+            # Match the regex
+            pattern = r'(XH|SH|X|S|A|B|C|D)'
+            a = re.findall(pattern, f[2])
+            r.append(field_map[f[0]].in_(a))
+            continue
+
         r.append(op_map[f[1]](field_map[f[0]], f[2]))
-        #print(formats[f[0]](f[2]))
     return tuple(r)
 
 # Given a mode, return the correct list order
@@ -169,14 +176,12 @@ def parse_mod_filters(mode: str or int, modstring: str):
         if match[0] == '+':
             mods = match[1:]
             mods = [mods[i:i + 2] for i in range(0, len(mods), 2)]
-            print(mods)
             for mod in mods:
                 filters.append(table.enabled_mods.icontains(mod))
         # Excluding
         else:
             mods = match[1:]
             mods = [mods[i:i + 2] for i in range(0, len(mods), 2)]
-            print(mods)
             for mod in mods:
                 filters.append(not_(table.enabled_mods.icontains(mod)))
 
@@ -199,5 +204,9 @@ if __name__ == '__main__':
     print(c)
     print(d)
     print(e)
-    #a = parse_score_filters('osu', 'date<2024-10-10')
+    a = parse_score_filters('osu', 'date<2024-10-10 rank/XH')
+    a = parse_score_filters('osu', 'date<2024-10-10 rank/XHSHS')
+    a = parse_score_filters('osu', 'date<2024-10-10 rank/AXHBSHC')
+    a = parse_score_filters('osu', 'date<2024-10-10 rank/ABCSSH')
+    a = parse_score_filters('osu', 'date<2024-10-10 rank/ABCSHS')
     #parse_score_filters('osu', 'date<2024-12-31 rank=S')
