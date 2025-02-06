@@ -84,8 +84,14 @@ def get_ids_from_tag(session: Session, group: str or List[int]) -> List[int] or 
         stmt = stmt.filter(RegisteredUserTag.tag == group)
     return session.scalars(stmt).all()
 
+# Returns the number of tags and the number of people in tags
+def count_tags(session: Session):
+    stmt = select(func.count(Tags.tag_name))
+    stmt2 = select(func.count(RegisteredUserTag.user_id))
+    return session.scalars(stmt).one(), session.scalars(stmt2).one()
+
 if __name__ == '__main__':
     from database.ORM import ORM
     orm = ORM()
     # create_tag(orm.sessionmaker(), owner=10651409, tag='OR')
-    add_mods(orm.sessionmaker(), user_ids=[617104], tag='OR')
+    add_moderators(orm.sessionmaker(), user_ids=[617104], tag='OR')
