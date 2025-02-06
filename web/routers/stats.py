@@ -1,12 +1,11 @@
 from fastapi import APIRouter, status, Query, Request
 from typing import Optional, Annotated
-
 from database.ORM import ORM
 from database.models import RegisteredUser
 from database.util import parse_score_filters, parse_mod_filters
 from database.userService import get_top_n, get_profile_pp, get_ids_from_tag
-from database.leaderboardService import group_leaderboard, top_play_per_day
-from database.scoreService import get_daily_scores
+from database.leaderboardService import get_beatmap_leaderboard, top_play_per_day
+from database.scoreService import get_total_scores
 from web.apiModels import Mode, Metric
 
 router = APIRouter()
@@ -36,8 +35,10 @@ def top_n(user_id: int, mode: Mode = 'osu', filters: str = None, mods: str = Non
 @router.get('/profile_pp', status_code=status.HTTP_200_OK)
 def profile_pp(user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, n: int = 100, bonus: bool = True, unique: bool = True):
     """
-    Same as top but also returns a profile pp value according to the weightage system at https://osu.ppy.sh/wiki/en/Performance_points
+    Same as top but also returns a profile pp value according to the weightage system at [https://osu.ppy.sh/wiki/en/Performance_points](https://osu.ppy.sh/wiki/en/Performance_points)
     - **unique:** Return only one score per beatmap
+    - **n:** Number of scores to return (limit 100)
+    - **bonus:** Whether to include max bonus pp in the calculation
     """
     n = min(100, n)  # 100 is the max number of maps
     scores = top_n(user_id, mode, filters, mods,'pp', True, n, unique)['scores']
@@ -60,25 +61,20 @@ def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | None, Qu
         if len(users) == 0:
             return {"message": "There are no registered users in %s" % group_tag}
 
-    scores = group_leaderboard(session, users, beatmap_id, mode, filters, mods, metric, unique)
+    scores = get_beatmap_leaderboard(session, users, beatmap_id, mode, filters, mods, metric, unique)
     session.close()
     return {"Leaderboard for %s" % beatmap_id: scores}
 
 # TODO return all users and maybe some basic stats about the group
 @router.get('/tag_summary', status_code=status.HTTP_200_OK)
 def get_tag_summary(group_tag: str or int):
-
+    """
+    **NOT IMPLEMENTED**
+    """
     pass
 
-@router.get('/today_summary', status_code=status.HTTP_200_OK)
-def get_today_summary(mode: str or int = 'osu', limit: int = 50):
-    session = orm.sessionmaker()
-    scores = get_daily_scores(session, mode, limit)
-    session.close()
-    return {'scores': scores}
-
 @router.get('/score_history', status_code=status.HTTP_200_OK)
-async def get_score_history(user_id: int, mode: str or int = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, minimal: bool = True):
+async def get_score_history(user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, minimal: bool = True):
     """
     Returns the player's month-to-month performance. This includes the highest pp play every month and the number of plays set per month
     """
@@ -88,3 +84,20 @@ async def get_score_history(user_id: int, mode: str or int = 'osu', filters: Opt
     scores = top_play_per_day(session, user_id, mode, filters, mods, minimal)
     session.close()
     return {"length": len(scores), "scores": scores}
+
+@router.get('/total_scores', status_code=status.HTTP_200_OK)
+async def total_scores(mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None):
+    """
+    Returns the number of scores that match the filters
+    """
+    return_str = "Total %s Scores" % mode.name
+    if filters:
+        return_str += " with filters: %s" % filters
+    if mods:
+        return_str += " with mods: %s" % mods
+
+    session = orm.sessionmaker()
+    filters = parse_score_filters(mode, filters)
+    mod_filters = parse_mod_filters(mode, mods)
+    a = get_total_scores(session, mode, filters, mod_filters)
+    return {return_str: a}
