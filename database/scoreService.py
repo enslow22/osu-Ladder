@@ -1,9 +1,8 @@
 from collections.abc import Sequence
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import Session
-import database.util
 from models import Score
-from util import get_mode_table
+from util import get_mode_table, parse_score_filters, parse_mod_filters
 from typing import List
 from ossapi import Score as ossapiScore
 
@@ -60,6 +59,6 @@ if __name__ == '__main__':
 
     from ORM import ORM
     orm = ORM()
-    filters = database.util.parse_mod_filters('osu', '!HRDTHDCL')
-    other_filters = database.util.parse_score_filters('osu', 'date<2024-01-01')
+    filters = parse_mod_filters('osu', '!HRDTHDCL')
+    other_filters = parse_score_filters('osu', 'date<2024-01-01')
     print(get_total_scores(orm.sessionmaker(), mode=0, filters=other_filters, mods=filters))
