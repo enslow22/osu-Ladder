@@ -9,7 +9,10 @@ from routers import admin, auth, stats
 from dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 from database.ORM import ORM
 from database.fetchQueue import TaskQueue
-import database.userService as userService
+from database.userService import get_user_from_apikey, register_user, count_users
+from database.tagService import count_tags
+from database.scoreService import get_total_scores
+from database.util import parse_score_filters
 import dotenv
 import os
 
@@ -73,7 +76,6 @@ osu!lb stores the following data for every score in the database:
 
 | Column Name   | Type                                           | Description                                                                                    |
 |---------------|------------------------------------------------|------------------------------------------------------------------------------------------------|
-| date          | datetime                                       | The date and time the score was submitted in UTC. Formatted as "YYYY-MM-DD HH:MM:SS"                  |
 | user_id       | int                                            | The user who set the play                                                                      |
 | date          | datetime                                       | The date and time the score was submitted in UTC. Formatted as "YYYY-MM-DD HH:MM:SS"           |
 | pp            | float                                          | The pp value of the score.                                                                     |
@@ -113,7 +115,7 @@ def main_page(request: Request, authorization: RegisteredUserCompact = Depends(h
     else:
         # Get profile data from cookie
         session = orm.sessionmaker()
-        user = userService.get_user_from_apikey(session, authorization['apikey'])
+        user = get_user_from_apikey(session, authorization['apikey'])
         session.close()
         return templates.TemplateResponse(request=request,
                                           name='authorized.html',
@@ -157,7 +159,7 @@ async def auth_via_osu(code: str):
         apikey = sha256((static_secret + str(user_data['id'])).encode('utf-8')).hexdigest()
 
         session = orm.sessionmaker()
-        success, user = userService.register_user(session, user_data['id'], apikey, access_token=access_token, refresh_token=refresh_token, expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
+        success, user = register_user(session, user_data['id'], apikey, access_token=access_token, refresh_token=refresh_token, expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
 
         access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey, 'catch_playtime': user_data['statistics']['play_time']})
         response = RedirectResponse(url='/')
@@ -182,7 +184,41 @@ def get_fetch_queue():
                                                                 'num_maps': 'Calculating',
                                                                 'total_map': 'Calculating'} for x in user_queue]}
 
-# TODO u can check user agent + a custom header as a middlewares investigate
+@app.get('/today_summary', status_code=status.HTTP_200_OK)
+def get_today_summary():
+    """
+    Returns the number of scores submitted in each mode for today
+    """
+    session = orm.sessionmaker()
+    import datetime
+    filter_string = 'date>='+datetime.date.today().strftime('%Y-%m-%d')
+    data = {}
+    for mode in ['osu', 'taiko', 'fruits', 'mania']:
+        data[mode] = get_total_scores(session, mode, filters=parse_score_filters(mode, filter_string))
+    session.close()
+    return data
+
+@app.get('/database_summary', status_code=status.HTTP_200_OK)
+async def get_database_summary():
+    """
+    Returns the number of scores in the database
+    """
+    session = orm.sessionmaker()
+    num_osu_scores = get_total_scores(session, mode='osu')
+    num_taiko_scores = get_total_scores(session, mode='taiko')
+    num_catch_scores = get_total_scores(session, mode='fruits')
+    num_mania_scores = get_total_scores(session, mode='mania')
+    num_registered_users = count_users(session)
+    num_tags, num_users_tagged = count_tags(session)
+    session.close()
+
+    return {'Total Standard Scores': num_osu_scores,
+            'Total Taiko Scores': num_taiko_scores,
+            'Total Catch Scores': num_catch_scores,
+            'Total Mania Scores': num_mania_scores,
+            'Total Registered Users': num_registered_users,
+            'Total Tags': num_tags,
+            'Total Tagged Players': num_users_tagged,}
 
 app.include_router(
     auth.router,
