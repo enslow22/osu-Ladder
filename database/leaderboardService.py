@@ -5,17 +5,9 @@ from typing import List, Any
 from ossapi import Score
 from database.models import RegisteredUser
 
-
-def group_leaderboard(session: Session, users: List[int], beatmap_id: int, mode: str or int, filters: tuple = (), mods: tuple = (), metric: str = 'lazer_score', unique: bool = True) -> List[Score]:
+def get_beatmap_leaderboard(session: Session, users: List[int], beatmap_id: int, mode: str or int, filters: tuple = (), mods: tuple = (), metric: str = 'lazer_score', unique: bool = True) -> List[Score]:
     """
-    :param users:       The tag. If None, include all users
-    :param beatmap_id:  The id of the map to generate the leaderboard
-    :param mode:        The mode of the leaderboard
-    :param filters:     Any additional filters
-    :param mods:        Any mod filters
-    :param metric:      The column to order by
-    :param unique:      One score per user?
-    :return:            A list of scores in
+    Given a beatmap, fetch the beatmap leaderboard. Can also supply a group of users.
     """
     if not isinstance(filters, tuple):
         filters = tuple(filters)
@@ -42,12 +34,9 @@ def group_leaderboard(session: Session, users: List[int], beatmap_id: int, mode:
     return [x for x in lb if x is not None]
 
 # Probably shouldn't have this as a route, but we will see.
-def pp_history(session: Session, users: List[int], mode: str or int) -> List[dict[str, Any]]:
+def pp_record_history(session: Session, users: List[int], mode: str or int) -> List[dict[str, Any]]:
     """
-
-    :param users:   List of users to calculate the pp history
-    :param mode:    The mode
-    :return:        A list of scores
+    Given a list of users, calculate the pp history.
     """
     table = get_mode_table(mode)
     # For one hundred players, this loads about 100mb worth of data into memory
@@ -78,6 +67,9 @@ def pp_history(session: Session, users: List[int], mode: str or int) -> List[dic
     return pp_history
 
 def top_play_per_day(session: Session, user_id: int, mode: str or int, filters: tuple = (), mods: tuple = (), minimal: bool = True):
+    """
+    Given a user, fetch their highest pp play for each day.
+    """
     if not isinstance(filters, tuple):
         filters = tuple(filters)
     if not isinstance(mods, tuple):

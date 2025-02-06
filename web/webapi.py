@@ -74,6 +74,8 @@ osu!lb stores the following data for every score in the database:
 | Column Name   | Type                                           | Description                                                                                    |
 |---------------|------------------------------------------------|------------------------------------------------------------------------------------------------|
 | date          | datetime                                       | The date and time the score was submitted in UTC. Formatted as "YYYY-MM-DD HH:MM:SS"                  |
+| user_id       | int                                            | The user who set the play                                                                      |
+| date          | datetime                                       | The date and time the score was submitted in UTC. Formatted as "YYYY-MM-DD HH:MM:SS"           |
 | pp            | float                                          | The pp value of the score.                                                                     |
 | rank          | Enum('XH', 'X', 'SH', 'S', 'A', 'B', 'C', 'D') | The awarded rank of the score.                                                                 |
 | perfect       | bool                                           | If the score has perfect combo                                                                 |
