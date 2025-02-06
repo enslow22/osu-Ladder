@@ -32,7 +32,7 @@ async function callInitialFetch() {
     body: '{}',
     headers: {
     'Content-Type': 'application/json'
-    }}).then(res => res.json()).then(alert('Success!'));
+    }}).then(res => res.json()).then(data => alert(data['message']));
 
     fetchQueue()
 }
@@ -45,7 +45,7 @@ async function fetchQueue() {
     //queue = [{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true}]
     fetch_queue = document.getElementById('fetch_queue_container')
 
-    headers = '<tr><th>User Id</th><th>Username</th><th>Catch Converts?</th><th>Progress</th></tr>'
+    headers = '<tr><th>Username</th><th>User Id</th><th>Catch Converts?</th><th>Progress</th></tr>'
 
     queue_list = []
 
@@ -68,5 +68,3 @@ async function fetchQueue() {
 
     fetch_queue.innerHTML = headers + queue_list.join('')
 }
-
-fetchQueue()
