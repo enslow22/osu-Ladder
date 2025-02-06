@@ -78,6 +78,7 @@ def parse_score_filters(mode: str or int, filters: str):
     # stable_score, lazer_score, classic_score, maxcombo, rank, count50, count100, count300, countmiss, perfect,
     #     enabled_mods, enabled_mods_settings, date, pp, replay
     field_map = {
+        "user_id": table.user_id,
         "date": table.date,
         "pp": table.pp,
         "rank": table.rank,
