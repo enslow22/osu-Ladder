@@ -1,5 +1,6 @@
+import datetime
 from collections.abc import Sequence
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, Date
 from sqlalchemy.orm import Session
 from models import Score
 from util import get_mode_table
@@ -30,4 +31,9 @@ def get_user_scores(session: Session, beatmap_id: int, user_id: int, mode: str o
             getattr(table, 'user_id') == user_id
         )
     ).filter(*filters).order_by(getattr(table, metric).desc())
+    return session.scalars(stmt).all()
+
+def get_daily_scores(session: Session, mode: str or int, limit=50):
+    table = get_mode_table(mode)
+    stmt = select(table).filter(getattr(table, 'date').cast(Date) == datetime.date.today()).order_by(getattr(table, 'date').desc()).limit(limit)
     return session.scalars(stmt).all()
