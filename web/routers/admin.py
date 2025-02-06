@@ -1,9 +1,9 @@
-from typing import List
-from fastapi import APIRouter, status, Response
+from typing import Annotated
+from fastapi import APIRouter, Query, status, Response
 from database.ORM import ORM
 import database.userService as userService
 from database.models import RegisteredUser
-from database.userService import add_tags
+from database.tagService import add_tags
 
 router = APIRouter()
 orm = ORM()
@@ -40,10 +40,10 @@ async def initial_fetch_user(user_id: int, catch_converts: bool | None):
     return items
 
 @router.post("/add_tags_to_users/", status_code=status.HTTP_202_ACCEPTED)
-async def add_tags_to_users(user_ids: List[int], tag: str):
-    if not add_tags(orm.sessionmaker(),user_ids, tag):
+async def add_tags_to_users(user_ids: Annotated[list[int] | None, Query()], tag: str):
+    if not add_tags(orm.sessionmaker(), user_ids, tag):
         return {"message": "An error occurred. Make sure all users are registered."}
 
-@router.get("/test", status_code=   status.HTTP_200_OK)
+@router.get("/test", status_code=status.HTTP_200_OK)
 def test():
     return {"message": "hello from /admin/test (hopefully)"}
