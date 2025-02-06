@@ -3,7 +3,8 @@ from typing import Optional, Annotated
 from database.ORM import ORM
 from database.models import RegisteredUser
 from database.util import parse_score_filters, parse_mod_filters
-from database.userService import get_top_n, get_profile_pp, get_ids_from_tag
+from database.userService import get_top_n, get_profile_pp
+from database.tagService import get_ids_from_tag
 from database.leaderboardService import get_beatmap_leaderboard, top_play_per_day
 from database.scoreService import get_total_scores
 from web.apiModels import Mode, Metric
