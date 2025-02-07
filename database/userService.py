@@ -12,7 +12,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from database.models import RegisteredUser, RegisteredUserTag, Score
 
-def register_user(session: Session, user_id: int, apikey: str | None = None, access_token: str | None = None, refresh_token: str | None = None, expires_at: datetime.datetime | None = None) -> (bool, RegisteredUser):
+def register_user(session: Session, user_id: int) -> (bool, RegisteredUser):
     """
     Register a new user to the database
     """
@@ -22,12 +22,19 @@ def register_user(session: Session, user_id: int, apikey: str | None = None, acc
     user_info = get_user_info(user_id)
     user = RegisteredUser(user_info)
     session.add(user)
+    session.commit()
+    return True, user
+
+def set_user_authentication(session: Session, user_id: int,  apikey: str, access_token: str, refresh_token: str , expires_at: datetime.datetime) -> bool:
+    user = session.get(RegisteredUser, user_id)
+    if user is None:
+        return False
     user.apikey = apikey
     user.access_token = access_token
     user.refresh_token = refresh_token
     user.expires_at = expires_at
     session.commit()
-    return True, user
+    return True
 
 def get_user_from_apikey(session: Session, apikey) -> RegisteredUser or None:
     """
@@ -108,7 +115,8 @@ def refresh_tokens(session: Session, user: RegisteredUser | int) -> bool:
         user.access_token = payload['access_token']
         user.expires_at = datetime.datetime.now() + datetime.timedelta(seconds=payload['expires_in'])
         session.commit()
-    return True
+        return True
+    return False
 
 def get_profile_pp(scores: List[Score], bonus = True, n = 100) -> int:
     """
