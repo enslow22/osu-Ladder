@@ -14,6 +14,10 @@ app = FastAPI()
 orm = ORM()
 tq = TaskQueue(orm.sessionmaker)
 
+app.get("/")
+def main():
+    return {"message": "You are at the fetch queue!"}
+
 @app.get("/queue", status_code=status.HTTP_200_OK)
 def get_fetch_queue():
     """
