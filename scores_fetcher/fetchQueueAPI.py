@@ -34,7 +34,7 @@ def get_fetch_queue():
                                                                 'num_maps': 'Calculating',
                                                                 'total_map': 'Calculating'} for x in user_queue]}
 
-@app.post("/enqueue_me", status_code=status.HTTP_202_ACCEPTED)
+@app.post("/enqueue_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     """
     Adds the authenticated user to the fetch queue

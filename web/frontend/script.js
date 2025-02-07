@@ -27,7 +27,7 @@ async function callInitialFetch() {
     catch_converts = document.getElementById('catch_converts')
 
     q_string = '?catch_converts='+catch_converts.checked.toString()
-    a = await fetch('/initial_fetch_self' + q_string , {
+    a = await fetch('/fetch/enqueue_self' + q_string , {
     method: "POST",
     body: '{}',
     headers: {
@@ -38,7 +38,7 @@ async function callInitialFetch() {
 }
 
 async function fetchQueue() {
-    const response = await fetch('/fetch_queue');
+    const response = await fetch('/fetch/queue');
     const data = await response.json();
     current = data['current']
     queue = data['in queue']
