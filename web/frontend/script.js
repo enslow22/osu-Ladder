@@ -42,7 +42,6 @@ async function fetchQueue() {
     const data = await response.json();
     current = data['current']
     queue = data['in queue']
-    //queue = [{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true},{"username":"aaa", "user_id": 1111111, "catch_converts": true}]
     fetch_queue = document.getElementById('fetch_queue_container')
 
     headers = '<tr><th>Username</th><th>User Id</th><th>Catch Converts?</th><th>Progress</th></tr>'
