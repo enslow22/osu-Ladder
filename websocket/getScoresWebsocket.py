@@ -46,7 +46,7 @@ def get_all_users(session):
     stmt = select(models.RegisteredUser.user_id)
     user_ids = [user_id for user_id in session.execute(stmt).scalars().all()]
     session.close()
-    print(user_ids)
+    print("Tracking scores for %s users" % str(len(user_ids)))
     return user_ids
 
 async def process_scores(websocket):
@@ -81,6 +81,7 @@ async def process_scores(websocket):
     except asyncio.CancelledError:
         raise
     except Exception as e:
+        print('Something catastrophic has occurred. Please investigate this situation at your earliest convenience!!!!!!!!!!!')
         print(e)
 
 if __name__ == "__main__":
