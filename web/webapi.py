@@ -8,7 +8,6 @@ from starlette.staticfiles import StaticFiles
 from routers import admin, auth, stats
 from dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 from database.ORM import ORM
-from database.fetchQueue import TaskQueue
 from database.userService import get_user_from_apikey, register_user, count_users, set_user_authentication
 from database.tagService import count_tags
 from database.scoreService import get_total_scores
