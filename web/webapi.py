@@ -182,7 +182,7 @@ def get_today_summary():
     """
     session = orm.sessionmaker()
     import datetime
-    filter_string = 'date>='+datetime.date.today().strftime('%Y-%m-%d')
+    filter_string = 'date>='+datetime.date.today().strftime('%Y-%m-%d %H:%M:%S')
     data = {}
     for mode in ['osu', 'taiko', 'fruits', 'mania']:
         data[mode] = get_total_scores(session, mode, filters=parse_score_filters(mode, filter_string))
@@ -215,7 +215,7 @@ app.include_router(
     auth.router,
     tags=["auth"],
     dependencies=[Depends(verify_token)],
-    )
+)
 app.include_router(
     stats.router,
     prefix="/stats",
