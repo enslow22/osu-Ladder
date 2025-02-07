@@ -10,7 +10,7 @@ from database.osuApiAuthService import OsuApiAuthService
 from web.dependencies import verify_token, verify_admin, RegisteredUserCompact
 from scores_fetcher.fetchQueueTest import TaskQueue
 
-app = FastAPI(docs_url="/fetch_docs", redoc_url=None)
+fetchapp = FastAPI(docs_url="/fetch_docs", redoc_url=None)
 orm = ORM()
 tq = TaskQueue(orm.sessionmaker)
 
@@ -37,7 +37,7 @@ def enqueue_user(user_id: int, catch_converts: bool):
         return {'message': 'Success! You have been added to the queue.'}
     return {'message': 'Something went wrong. Relog and try again if your scores have not already been fetched.'}
 
-@app.get("/queue", status_code=status.HTTP_200_OK)
+@fetchapp.get("/queue", status_code=status.HTTP_200_OK)
 def get_fetch_queue():
     """
     Returns the fetch queue
@@ -53,7 +53,7 @@ def get_fetch_queue():
                                                                 'num_maps': 'Calculating',
                                                                 'total_map': 'Calculating'} for x in user_queue]}
 
-@app.post("/enqueue_self", status_code=status.HTTP_202_ACCEPTED)
+@fetchapp.post("/enqueue_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     """
     Adds the authenticated user to the fetch queue
@@ -61,7 +61,7 @@ def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)]
     user_id = token['user_id']
     return enqueue_user(user_id, catch_converts)
 
-@app.post("/enqueue_user", status_code=status.HTTP_202_ACCEPTED)
+@fetchapp.post("/enqueue_user", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch_user(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int, catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     """
     Adds any user to the fetch queue
