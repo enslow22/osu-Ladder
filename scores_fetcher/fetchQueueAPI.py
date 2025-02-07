@@ -10,13 +10,9 @@ from database.osuApiAuthService import OsuApiAuthService
 from web.dependencies import verify_token, RegisteredUserCompact
 from scores_fetcher.fetchQueueTest import TaskQueue
 
-app = FastAPI()
+app = FastAPI(docs_url="/docs", redoc_url=None)
 orm = ORM()
 tq = TaskQueue(orm.sessionmaker)
-
-app.get("/")
-def main():
-    return {"message": "You are at the fetch queue!"}
 
 @app.get("/queue", status_code=status.HTTP_200_OK)
 def get_fetch_queue():
