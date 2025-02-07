@@ -63,7 +63,7 @@ def parse_score_filters(mode: str or int, filters: str):
     filters = filters.lower()
     all_filters = re.split(r',|\s', filters)
     all_filters = [x.strip() for x in all_filters]
-    all_filters = [re.split('([<>=!/])+', x) for x in all_filters]
+    all_filters = [re.split('([<>=!/]+)+', x) for x in all_filters]
 
     op_map = {
     "=": op.eq,

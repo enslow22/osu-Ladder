@@ -181,7 +181,7 @@ def get_today_summary():
     """
     session = orm.sessionmaker()
     import datetime
-    filter_string = 'date>='+datetime.date.today().strftime('%Y-%m-%d %H:%M:%S')
+    filter_string = 'date>='+datetime.date.today().strftime('%Y-%m-%d')
     data = {}
     for mode in ['osu', 'taiko', 'fruits', 'mania']:
         data[mode] = get_total_scores(session, mode, filters=parse_score_filters(mode, filter_string))
