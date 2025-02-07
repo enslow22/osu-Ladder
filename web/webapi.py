@@ -167,12 +167,12 @@ async def auth_via_osu(code: str):
         return response
     return {"message": "Something has gone wrong. Please try again and let enslow know if you continue to have issues!"}
 
-@app.get("/fetch_queue", status_code=status.HTTP_200_OK)
+@app.get("/fetch_queue", status_code=status.HTTP_301_MOVED_PERMANENTLY)
 def get_fetch_queue():
     """
     Moved to /fetch/fetch_queue
     """
-    pass
+    return {"message": "Moved to /fetch/fetch_queue"}
 
 @app.get('/today_summary', status_code=status.HTTP_200_OK)
 def get_today_summary():
