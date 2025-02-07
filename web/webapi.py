@@ -9,7 +9,7 @@ from routers import admin, auth, stats
 from dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 from database.ORM import ORM
 from database.fetchQueue import TaskQueue
-from database.userService import get_user_from_apikey, register_user, count_users
+from database.userService import get_user_from_apikey, register_user, count_users, set_user_authentication
 from database.tagService import count_tags
 from database.scoreService import get_total_scores
 from database.util import parse_score_filters
@@ -158,7 +158,8 @@ async def auth_via_osu(code: str):
         apikey = sha256((static_secret + str(user_data['id'])).encode('utf-8')).hexdigest()
 
         session = orm.sessionmaker()
-        success, user = register_user(session, user_data['id'], apikey, access_token=access_token, refresh_token=refresh_token, expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
+        success, user = register_user(session, user_data['id'])
+        set_user_authentication(session, user_data['id'], apikey, access_token, refresh_token, datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
 
         access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey, 'catch_playtime': user_data['statistics']['play_time']})
         response = RedirectResponse(url='/')

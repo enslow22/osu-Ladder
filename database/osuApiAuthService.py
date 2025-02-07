@@ -1,4 +1,4 @@
-from ossapi import Ossapi, Grant, BeatmapPlaycount
+from ossapi import Ossapi, Grant, BeatmapPlaycount, Scope
 import dotenv
 import os
 from ratelimit import limits, sleep_and_retry
@@ -25,7 +25,8 @@ class OsuApiAuthService:
                               os.getenv('WEBCLIENT_SECRET'),
                               grant=Grant.AUTHORIZATION_CODE,
                               redirect_uri=os.getenv('REDIRECT_URI'),
-                              access_token=access_token,)
+                              access_token=access_token,
+                              scopes=[Scope.PUBLIC, Scope.IDENTIFY])
 
     def get_all_played_maps(self) -> List[BeatmapPlaycount]:
         map_list = []
@@ -57,6 +58,16 @@ class OsuApiAuthService:
             print('Map probably has an issue or has no leaderboard')
             return []
         return score_infos
+
+    @sleep_and_retry
+    @limits(calls=CALLS, period=ONE_MINUTE)
+    def auth_client_works(self) -> bool:
+        try:
+            me = self.api.get_me()
+            if me:
+                return True
+        except Exception:
+            return False
 
 if __name__ == '__main__':
     pass
