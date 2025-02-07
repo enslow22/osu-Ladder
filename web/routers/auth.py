@@ -6,7 +6,7 @@ from database.ORM import ORM
 from database.models import RegisteredUser
 from database.scoreService import get_user_scores
 from database.tagService import create_tag
-from database.util import parse_score_filters
+from database.util import parse_score_filters, parse_mod_filters
 from web.apiModels import Mode
 
 router = APIRouter()
@@ -32,13 +32,14 @@ def get_user(user_id: int):
     return {"user": session.get(RegisteredUser, user_id)}
 
 @router.get('/scores', tags=['auth'])
-def get_score(beatmap_id: int, user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, metric: str = 'pp'):
+def get_score(beatmap_id: int, user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, metric: str = 'pp'):
     """
     Fetches a user's scores on a beatmap
     """
     filters = parse_score_filters(mode, filters)
+    mods = parse_mod_filters(mode, filters)
     session = orm.sessionmaker()
-    a = get_user_scores(session, beatmap_id, user_id, mode, filters, metric)
+    a = get_user_scores(session, beatmap_id, user_id, mode, filters, mods, metric)
     session.close()
     return {"scores": a}
 
