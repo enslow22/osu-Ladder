@@ -60,7 +60,7 @@ def parse_score_filters(mode: str or int, filters: str):
     import re
 
     table = get_mode_table(mode)
-
+    filters = filters.lower()
     all_filters = re.split(r',|\s', filters)
     all_filters = [x.strip() for x in all_filters]
     all_filters = [re.split('([<>=!/])+', x) for x in all_filters]
@@ -155,7 +155,7 @@ def parse_mod_filters(mode: str or int, modstring: str):
     from sqlalchemy import not_
     if modstring is None:
         return ()
-
+    modstring = modstring.upper()
     modstring = "".join(modstring.split())
     table = get_mode_table(mode)
 
