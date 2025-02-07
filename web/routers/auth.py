@@ -46,17 +46,9 @@ def get_score(beatmap_id: int, user_id: int, mode: Mode = 'osu', filters: Option
 @router.post("/initial_fetch_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     """
-    Adds the authenticated user to the fetch queue
+    Moved to /fetch/initial_fetch_self
     """
-    from web.webapi import tq
-
-    # See if they have 2 days on catch playtime
-    if token['catch_playtime'] < 172800:
-        catch_converts = False
-    if tq.enqueue(token['user_id'], catch_converts):
-        return {'message': 'Success! You have been added to the queue.'}
-    return {'message': 'Something went wrong. Relog and try again if your scores have not already been fetched.'}
-
+    pass
 # TODO: Add the tag amount check in the api logic, not at the operation layer.
 @router.post("/create_new_tag", status_code=status.HTTP_201_CREATED)
 def create_new_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str):

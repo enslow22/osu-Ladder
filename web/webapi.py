@@ -23,7 +23,6 @@ redirect_uri = os.getenv('REDIRECT_URI')
 templates = Jinja2Templates(directory='web/frontend/templates')
 
 orm = ORM()
-tq = TaskQueue(orm.sessionmaker)
 
 tags_metadata = [
     {
@@ -171,18 +170,9 @@ async def auth_via_osu(code: str):
 @app.get("/fetch_queue", status_code=status.HTTP_200_OK)
 def get_fetch_queue():
     """
-    Returns the fetch queue
+    Moved to /fetch/fetch_queue
     """
-    import copy
-    if tq.current is None:
-        return {'current': None, 'in queue': None}
-    user_queue = tq.q.queue
-
-    return {'current': copy.deepcopy(tq.current), 'in queue': [{'username': x[1].username,
-                                                                'user_id': x[1].user_id,
-                                                                'catch_converts': x[2],
-                                                                'num_maps': 'Calculating',
-                                                                'total_map': 'Calculating'} for x in user_queue]}
+    pass
 
 @app.get('/today_summary', status_code=status.HTTP_200_OK)
 def get_today_summary():
