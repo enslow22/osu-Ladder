@@ -98,6 +98,7 @@ def parse_score_filters(mode: str or int, filters: str):
     for f in all_filters:
         if op_map[f[1]] == op.contains:
             # Match the regex
+            f[2] = f[2].upper()
             pattern = r'(XH|SH|X|S|A|B|C|D)'
             a = re.findall(pattern, f[2])
             r.append(field_map[f[0]].in_(a))
@@ -200,12 +201,8 @@ if __name__ == '__main__':
     c = parse_mod_filters('osu', '-HD+HRDT')
     d = parse_mod_filters('osu', '!EZHD')
     e = parse_mod_filters('osu', '!HDEZ')
-    print(a)
-    print(b)
-    print(c)
-    print(d)
-    print(e)
-    a = parse_score_filters('osu', 'date<2024-10-10 rank/XH')
+
+    a = parse_score_filters('osu', 'date<2024-10-10 rank/(XH)')
     a = parse_score_filters('osu', 'date<2024-10-10 rank/XHSHS')
     a = parse_score_filters('osu', 'date<2024-10-10 rank/AXHBSHC')
     a = parse_score_filters('osu', 'date<2024-10-10 rank/ABCSSH')
