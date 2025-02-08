@@ -42,8 +42,8 @@ async def profile_pp(user_id: int, mode: Mode = 'osu', filters: Optional[str] = 
     - **bonus:** Whether to include max bonus pp in the calculation
     """
     n = min(100, n)  # 100 is the max number of maps
-    scores = top_n(user_id, mode, filters, mods,'pp', True, n, unique)['scores']
-    total_pp = get_profile_pp(scores, bonus, n)
+    scores = await top_n(user_id, mode, filters, mods,'pp', True, n, unique)
+    total_pp = get_profile_pp(scores['scores'], bonus, n)
     return {"total_pp": total_pp, "scores": scores}
 
 @router.get('/group_leaderboard', status_code=status.HTTP_200_OK)
@@ -66,13 +66,6 @@ async def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | No
     session.close()
     return {"Leaderboard for %s" % beatmap_id: scores}
 
-# TODO return all users and maybe some basic stats about the group
-@router.get('/tag_summary', status_code=status.HTTP_200_OK)
-def get_tag_summary(group_tag: str or int):
-    """
-    **NOT IMPLEMENTED**
-    """
-    pass
 
 @router.get('/score_history', status_code=status.HTTP_200_OK)
 async def get_score_history(user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, minimal: bool = True):
