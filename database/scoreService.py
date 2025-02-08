@@ -46,14 +46,18 @@ def get_scores(session: Session, mode: str or int, filters: tuple = (), mod_filt
     stmt = select(table).filter(*filters).filter(*mod_filters).order_by(sort_order).limit(limit)
     return session.scalars(stmt).all()
 
-def get_total_scores(session: Session, mode: str or int, filters: tuple = (), mods: tuple = ()) -> int:
+def get_total_scores(session: Session, mode: str or int, filters: tuple = (), mods: tuple = (), group_by: str | None = None, limit: int = 50):
     """
     Returns the total number of scores with the listed filters
     """
     tbl = get_mode_table(mode)
-    stmt = select(func.count(getattr(tbl, 'score_id'))).filter(*filters).filter(*mods)
-
-    return session.scalars(stmt).one()
+    if group_by:
+        stmt = select(getattr(tbl, group_by), func.count(getattr(tbl, 'score_id'))).filter(*filters).filter(*mods).group_by(getattr(tbl, group_by)).order_by(func.count(getattr(tbl, 'score_id')).desc()).limit(limit)
+        res = list(session.execute(stmt).fetchall())
+        return [{group_by: x[0], "count": x[1]} for x in res]
+    else:
+        stmt = select(func.count(getattr(tbl, 'score_id'))).filter(*filters).filter(*mods)
+        return session.scalars(stmt).one()
 
 if __name__ == '__main__':
 

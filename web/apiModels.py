@@ -43,6 +43,11 @@ class Metric(str, Enum):
     accuracy = 'accuracy'
     date = 'date'
 
+class ScoreGroupBy(str, Enum):
+    user_id = 'user_id'
+    beatmap_id = 'beatmap_id'
+    rank = 'rank'
+
 class Mods(BaseModel):
     #model_config = ConfigDict(regex_engine='python-re'
     mods: str = Field('a', description='A list of mods as a string')
