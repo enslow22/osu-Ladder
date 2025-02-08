@@ -79,7 +79,10 @@ def delete_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], t
     stmt = select(Tags).where(token['user_id'] == Tags.tag_owner).filter(tag_name==Tags.tag_name)
 
     session = orm.sessionmaker()
-    session.delete(session.scalar(stmt))
+    tag_object = session.scalar(stmt)
+    if not tag_object:
+        return {"message": "%s does not exist" % tag_name}
+    session.delete(tag_object)
     # If no tags were deleted, we can stop here
     if len(list(session.deleted)) == 0:
         return {"message": "%s has not been deleted. You are not the owner of %s" % (tag_name, tag_name)}
@@ -155,12 +158,15 @@ def add_mods_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token
     return {"message": "Success %s have been given mod for %s.%s" % (str(num_updated), tag_name, info_str)}
 
 @router.post("/remove_tag_mods", status_code=status.HTTP_202_ACCEPTED)
-def add_mods_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: Annotated[list[int] | None, Query()]):
+def remove_mods_from_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: Annotated[list[int] | None, Query()]):
     # Check if user is the owner of the tag
     session = orm.sessionmaker()
     stmt = select(Tags).filter(tag_name == Tags.tag_name).filter(token['user_id'] == Tags.tag_owner)
     if not session.execute(stmt).first():
-        return {"message: You are not the owner of %s, or it does not exist" % tag_name}
+        return {"message": "You are not the owner of %s, or it does not exist" % tag_name}
+
+    if token['user_id'] in user_ids:
+        return {"message": "You can not remove yourself as mod."}
 
     stmt = select(RegisteredUserTag).filter(RegisteredUserTag.user_id.in_(user_ids)).filter(RegisteredUserTag.mod)
     remove_mods = session.scalars(stmt).all()
