@@ -109,6 +109,7 @@ def add_users_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_toke
             session.commit()
         except sqlalchemy.exc.IntegrityError:
             already_in_tag.append(str(user_id))
+            session.rollback()
             continue
         num_added += 1
     session.close()
