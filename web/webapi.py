@@ -103,9 +103,6 @@ You can also sort by descending (default) or ascending
 
 app = FastAPI(redoc_url=None, openapi_tags=tags_metadata, description=description)
 
-from scores_fetcher.fetchQueueAPI import fetchapp
-app.mount(path="/fetch", app=fetchapp)
-
 @app.get("/", response_class=FileResponse)
 def main_page(request: Request, authorization: RegisteredUserCompact = Depends(has_token)):
     """
