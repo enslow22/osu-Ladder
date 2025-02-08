@@ -20,21 +20,21 @@ def get_user(req: Request, user_id: int):
     return {"user": orm.session.get(RegisteredUser, user_id).username, "headers_given": req.headers}
 
 @router.get('/top', status_code=status.HTTP_200_OK)
-async def top_n(user_id: int, mode: Mode = 'osu', filters: str = None, mods: str = None, metric: str = 'pp', desc: bool = True, n: int = 100, unique: bool = True):
+async def top_n(user_id: int, mode: Mode = 'osu', filter_string: str = None, mod_string: str = None, metric: Annotated[Metric, Query()] = 'pp', desc: bool = True, n: int = 100, unique: bool = True):
     """
     Gets the top n scores from the user (limit 100)
     - **unique:** Return only one score per beatmap
     """
-    filters = parse_score_filters(mode, filters)
-    mods = parse_mod_filters(mode, mods)
+    filters = parse_score_filters(mode, filter_string)
+    mods = parse_mod_filters(mode, mod_string)
     session = orm.sessionmaker()
     n = min(100, n) # 100 is the max number of maps
     a = get_top_n(session, user_id, mode, filters, mods, metric, n, unique, desc)
     session.close()
-    return {"scores": a}
+    return {'user_id': user_id, 'mode': mode.name, 'filters': filter_string, 'mods': mod_string, 'metric': metric.name, 'unique': unique, 'top plays': a}
 
 @router.get('/profile_pp', status_code=status.HTTP_200_OK)
-async def profile_pp(user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, n: int = 100, bonus: bool = True, unique: bool = True):
+async def profile_pp(user_id: int, mode: Mode = 'osu', filter_string: Optional[str] = None, mod_string: Optional[str] = None, n: int = 100, bonus: bool = True, unique: bool = True):
     """
     Same as top but also returns a profile pp value according to the weightage system at [https://osu.ppy.sh/wiki/en/Performance_points](https://osu.ppy.sh/wiki/en/Performance_points)
     - **unique:** Return only one score per beatmap
@@ -42,18 +42,20 @@ async def profile_pp(user_id: int, mode: Mode = 'osu', filters: Optional[str] = 
     - **bonus:** Whether to include max bonus pp in the calculation
     """
     n = min(100, n)  # 100 is the max number of maps
-    scores = await top_n(user_id, mode, filters, mods,'pp', True, n, unique)
-    total_pp = get_profile_pp(scores['scores'], bonus, n)
-    return {"total_pp": total_pp, "scores": scores}
+    scores = await top_n(user_id, mode, filter_string, mod_string, Metric.pp, True, n, unique)
+    scores = scores['top plays']
+    total_pp = get_profile_pp(scores, bonus, n)
+    return {'user_id': user_id, 'mode': mode.name, 'filters': filter_string, 'mods': mod_string, 'unique': unique, 'total pp': total_pp, 'top plays': scores}
 
 @router.get('/group_leaderboard', status_code=status.HTTP_200_OK)
-async def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | None, Query()] = None, group_tag: str or int = None, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None,  metric: Annotated[Metric, Query()] = 'pp', desc: bool = True, unique: bool = True):
+async def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | None, Query()] = None, group_tag: str or int = None, mode: Mode = 'osu', filter_string: Optional[str] = None, mod_string: Optional[str] = None,  metric: Annotated[Metric, Query()] = 'pp', desc: bool = True, unique: bool = True):
     """
     Given a beatmap_id and a list of users (or a Tag), construct a leaderboard
     - **unique:** Return only one score per user
     """
-    filters = parse_score_filters(mode, filters)
-    mods = parse_mod_filters(mode, mods)
+
+    filters = parse_score_filters(mode, filter_string)
+    mods = parse_mod_filters(mode, mod_string)
     session = orm.sessionmaker()
     if users is None:
         if group_tag is None:
@@ -64,36 +66,29 @@ async def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | No
 
     scores = get_beatmap_leaderboard(session, users, beatmap_id, mode, filters, mods, metric, unique)
     session.close()
-    return {"Leaderboard for %s" % beatmap_id: scores}
-
+    return {"group": str(group_tag), "users": users, "mode": mode.name, "filters": filter_string, "mods": mod_string, "metric": metric.name, "scores": scores}
 
 @router.get('/score_history', status_code=status.HTTP_200_OK)
-async def get_score_history(user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, minimal: bool = True):
+async def get_score_history(user_id: int, mode: Mode = 'osu', filter_string: Optional[str] = None, mod_string: Optional[str] = None, minimal: bool = True):
     """
     Returns the player's month-to-month performance. This includes the highest pp play every month and the number of plays set per month
     """
-    filters = parse_score_filters(mode, filters)
-    mods = parse_mod_filters(mode, mods)
+    filters = parse_score_filters(mode, filter_string)
+    mods = parse_mod_filters(mode, mod_string)
     session = orm.sessionmaker()
     scores = top_play_per_day(session, user_id, mode, filters, mods, minimal)
     session.close()
-    return {"length": len(scores), "scores": scores}
+    return {"length": len(scores), "user_id": user_id, "mode": mode.name, "filters": filter_string, "mods": mod_string, "minimal": minimal, "scores": scores}
 
 @router.get('/total_scores', status_code=status.HTTP_200_OK)
-async def total_scores(mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, group_by: ScoreGroupBy = None) -> Dict:
+async def total_scores(mode: Mode = 'osu', filter_string: Optional[str] = None, mod_string: Optional[str] = None, group_by: ScoreGroupBy = None) -> Dict:
     """
     Returns the number of scores that match the filters
     """
-    return_str = "Total %s Scores" % mode.name
-    if filters:
-        return_str += " with filters: %s" % filters
-    if mods:
-        return_str += " with mods: %s" % mods
-    if group_by:
-        return_str += " grouped by %s" % group_by.name
 
     session = orm.sessionmaker()
-    filters = parse_score_filters(mode, filters)
-    mod_filters = parse_mod_filters(mode, mods)
-    a = get_total_scores(session, mode, filters, mod_filters, group_by=group_by)
-    return {return_str: a}
+    filters = parse_score_filters(mode, filter_string)
+    mod_filters = parse_mod_filters(mode, mod_string)
+    scores = get_total_scores(session, mode, filters, mod_filters, group_by=group_by)
+    group_by_str = "None" if group_by is None else group_by.name
+    return {"mode": mode.name, "filters": filter_string, "mods": mod_string, "grouping by": group_by_str, "scores": scores}
