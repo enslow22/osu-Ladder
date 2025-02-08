@@ -12,20 +12,12 @@ def create_tag(session: Session, owner: int, tag: str) -> bool:
     """
     Creates a new record in the database that represents a tag
     """
-    stmt = select(Tags).filter(Tags.tag_name == tag)
-    a = session.execute(stmt).first()
-    if a:
-        return False
-    stmt = select(Tags).filter(Tags.tag_owner == owner)
-    if session.scalar(stmt):
-        return False
-
     try:
         new_tag = Tags(tag_name=tag, tag_owner=owner, date_created=datetime.datetime.now())
         session.add(new_tag)
     except Exception as e:
         print(e)
-        print('Tag %s already exists' % tag)
+        print("SOMETHING WENT WRONG IN TAGS")
         return False
 
     new_user_tag = RegisteredUserTag(user_id=owner, tag=tag, mod=True, date_added=datetime.datetime.now())
