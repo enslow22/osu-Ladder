@@ -18,8 +18,17 @@ class OsuApiAuthService:
     def __init__(self, user_id: int, access_token: str, override=False):
         self.user_id = user_id
         if override:
-            self.api = Ossapi(int(os.getenv('CLIENT_ID')),
-                              os.getenv('CLIENT_SECRET'),)
+            # Use my access token
+            from database.ORM import ORM
+            from database.models import RegisteredUser
+            orm = ORM()
+            me = orm.session.get(RegisteredUser, 10651409)
+            self.api = Ossapi(int(os.getenv('WEBCLIENT_ID')),
+                              os.getenv('WEBCLIENT_SECRET'),
+                              grant=Grant.AUTHORIZATION_CODE,
+                              redirect_uri=os.getenv('REDIRECT_URI'),
+                              access_token=me.access_token,
+                              scopes=[Scope.PUBLIC, Scope.IDENTIFY])
         else:
             self.api = Ossapi(int(os.getenv('WEBCLIENT_ID')),
                               os.getenv('WEBCLIENT_SECRET'),
