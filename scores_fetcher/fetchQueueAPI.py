@@ -8,7 +8,7 @@ from database.ORM import ORM
 from database.models import RegisteredUser
 from database.osuApiAuthService import OsuApiAuthService
 from web.dependencies import verify_token, verify_admin, RegisteredUserCompact
-from scores_fetcher.threadpooltest import TaskQueue
+from scores_fetcher.fetchQueue import TaskQueue
 
 fetchapp = FastAPI(docs_url="/docs", redoc_url=None)
 orm = ORM()
