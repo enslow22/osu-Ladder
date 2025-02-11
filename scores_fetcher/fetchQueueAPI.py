@@ -8,13 +8,13 @@ from database.ORM import ORM
 from database.models import RegisteredUser
 from database.osuApiAuthService import OsuApiAuthService
 from web.dependencies import verify_token, verify_admin, RegisteredUserCompact
-from scores_fetcher.fetchQueueTest import TaskQueue
+from scores_fetcher.threadpooltest import TaskQueue
 
-fetchapp = FastAPI(docs_url="/fetch_docs", redoc_url=None)
+fetchapp = FastAPI(docs_url="/docs", redoc_url=None)
 orm = ORM()
 tq = TaskQueue(orm.sessionmaker)
 
-def enqueue_user(user_id: int, catch_converts: bool):
+def enqueue_user(user_id: int, get_non_converts: bool, catch_converts: bool):
     # Verify that the user can be fetched
     user_queue = [x[1].user_id for x in tq.q.queue]
     session = orm.sessionmaker()
@@ -32,8 +32,10 @@ def enqueue_user(user_id: int, catch_converts: bool):
     auth_client = OsuApiAuthService(user.user_id, user.access_token)
     if not auth_client.auth_client_works():
         return {'message': 'Auth credentials out of date, try relogging'}
+    if not get_non_converts and not catch_converts:
+        return {'message': 'You must queue for something!'}
 
-    if tq.enqueue(user_id, catch_converts):
+    if tq.enqueue(user_id, get_non_converts, catch_converts):
         return {'message': 'Success! You have been added to the queue.'}
     return {'message': 'Something went wrong. Relog and try again if your scores have not already been fetched.'}
 
@@ -59,11 +61,38 @@ def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)]
     Adds the authenticated user to the fetch queue
     """
     user_id = token['user_id']
-    return enqueue_user(user_id, catch_converts)
+    return enqueue_user(user_id, True, catch_converts)
 
 @fetchapp.post("/enqueue_user", status_code=status.HTTP_202_ACCEPTED)
-def initial_fetch_user(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int, catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
+def initial_fetch_user(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int, non_converts: Annotated[ bool , Query(description='Fetch non_converts?')] = False, catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     """
     Adds any user to the fetch queue
     """
-    return enqueue_user(user_id, catch_converts)
+    return enqueue_user(user_id, non_converts, catch_converts)
+
+@fetchapp.post("/remove_from_queue", status_code=status.HTTP_202_ACCEPTED)
+def remove_from_queue(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int):
+    try:
+        print(tq.current)
+        print(tq.q.queue)
+        for task in tq.current:
+            if task['user_id'] == user_id:
+                tq.current.remove(task)
+
+                if len(tq.q.queue) > 0:
+                    tq.start()
+                    return {"message": "%s has been removed from the queue" % str(user_id)}
+
+        for task in tq.q.queue:
+            if task['user_id'] == user_id:
+                tq.q.queue.remove(task)
+
+                if len(tq.q.queue) > 0:
+                    tq.start()
+                    return {"message": "%s has been removed from the queue" % str(user_id)}
+        if len(tq.q.queue) == 0:
+            return {"message": "%s has been removed from the queue" % str(user_id)}
+        raise Exception
+    except Exception as e:
+        print(e)
+        return {"message": "Something went wrong and %s was not removed" % str(user_id)}
