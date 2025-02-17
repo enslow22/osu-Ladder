@@ -90,7 +90,7 @@ osu!lb stores the following data for every score in the database:
 | count_300     | int                                            | The number of 300s                                                                             |
 
 - You can filter through these with operators: (=, !=, >, <, <=, >=, /)
-- / represents the contains operator and it is used only for rank. The string rank/(XHSH) will only return scores that are hidden S or hidden SS
+- / represents the contains operator and it is used only for rank. The string rank/XHSH will only return scores that are hidden S or hidden SS
 - For dates, you can also compare with the format "YYYY-MM-DD" (e.g. date<2024-07-27 will return all scores older than July 27th 2024, 00:00:00)
 - You can add multiple filters by separating them with withspace or commas (e.g. pp<1000 pp>800 date<2023-01-01 will return all scores earlier than 2023 with pp values between 800 and 1000)
 
