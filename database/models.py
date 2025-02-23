@@ -8,7 +8,7 @@ from sqlalchemy.ext.declarative import ConcreteBase
 import enum
 from sqlalchemy import Enum
 import util
-from ossapi import Score as OssapiScore, User, Beatmapset
+from ossapi import Score as OssapiScore, User, Beatmapset, Beatmap as OssapiBeatmap
 
 mapper_registry = registry()
 
@@ -300,12 +300,12 @@ class BeatmapSet(Base):
 
         self.bpm = info.bpm
         self.versions_available = len(info.beatmaps)
-        self.approved = info.status.value # TODO test this
+        self.approved = info.status.value
         self.approved_date = info.ranked_date
         self.submit_date = info.submitted_date
         self.last_update = info.last_updated
-        self.genre_id = info.genre
-        self.language_id = info.language
+        self.genre_id = info.genre['id']
+        self.language_id = info.language['id']
         self.nsfw = info.nsfw
 
 class Beatmap(Base):
@@ -335,4 +335,25 @@ class Beatmap(Base):
     scores: Mapped[List["Score"]] = relationship(back_populates="beatmap")
     beatmapset: Mapped["BeatmapSet"] = relationship(back_populates="beatmaps")
 
-    # TODO write set_details
+    def set_details(self, info: OssapiBeatmap):
+
+        self.beatmap_id = info.id
+        self.beatmapset_id = info.beatmapset_id
+        self.mapper_id = info.user_id
+        self.checksum = info.checksum
+        self.version = info.version
+        self.total_length = info.total_length
+        self.hit_length = info.hit_length
+        self.count_normal = info.count_circles
+        self.count_slider = info.count_sliders
+        self.count_spinner = info.count_spinners
+        self.hp = info.drain
+        self.cs = info.cs
+        self.od = info.accuracy
+        self.ar = info.ar
+        self.playmode = info.mode.value
+        self.approved = info.status.value
+        self.last_updated = info.last_updated
+        self.stars = info.difficulty_rating
+        self.max_combo = info.max_combo
+        self.bpm = info.bpm
