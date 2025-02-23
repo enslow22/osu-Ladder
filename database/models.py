@@ -1,11 +1,14 @@
 import datetime
-from sqlalchemy.orm import DeclarativeBase, registry
+from typing import List
+from sqlalchemy.ext.declarative import AbstractConcreteBase
+from sqlalchemy.orm import DeclarativeBase, registry, relationship, Mapped, declared_attr, declarative_base
 from sqlalchemy import Column, String, Integer, Float, Date, Boolean, DateTime, ForeignKey
 from sqlalchemy.types import JSON
+from sqlalchemy.ext.declarative import ConcreteBase
 import enum
 from sqlalchemy import Enum
 import util
-from ossapi import Score, User
+from ossapi import Score as OssapiScore, User, Beatmapset
 
 mapper_registry = registry()
 
@@ -17,8 +20,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = 'sample_users'
 
-class BeatmapSet(Base):
-    __tablename__ = 'osu_beatmapsets'
+
 
 class Beatmap(Base):
     __tablename__ = 'osu_beatmaps'
@@ -34,17 +36,24 @@ class RankEnum(enum.Enum):
     X = 'X'
     XH = 'XH'
 
+class StatusEnum(enum.Enum):
+    graveyard = 'graveyard'
+    wip = 'wip'
+    pending = 'pending'
+    ranked = 'ranked'
+    approved = 'approved'
+    qualified = 'qualified'
+    loved = 'loved'
+
 class PlaymodeEnum(enum.Enum):
     osu = 'osu'
     taiko = 'taiko'
     fruits = 'fruits'
     mania = 'mania'
 
-class Score(Base):
-    __abstract__ = True
+class Score(AbstractConcreteBase, Base):
+    strict_attrs = True
     score_id = Column(Integer, primary_key=True)
-    beatmap_id = Column(Integer)
-    user_id = Column(Integer, ForeignKey('registered_users.user_id'))
     stable_score = Column(Integer)
     lazer_score = Column(Integer)
     classic_score = Column(Integer)
@@ -62,7 +71,19 @@ class Score(Base):
     pp = Column(Float)
     replay = Column(Boolean)
 
-    def set_details(self, info: Score):
+    @declared_attr
+    def beatmap_id(cls):
+        return Column(Integer, ForeignKey('osu_beatmaps.beatmap_id'))
+
+    @declared_attr
+    def user_id(cls):
+        return Column(Integer, ForeignKey('registered_users.user_id'))
+
+    @declared_attr
+    def beatmap(cls) -> Mapped["Beatmap"]:
+        return relationship("Beatmap")
+
+    def set_details(self, info: OssapiScore):
         self.score_id = info.id
         self.beatmap_id = info.beatmap_id
         self.user_id = info.user_id
@@ -87,11 +108,15 @@ class Score(Base):
 class OsuScore(Score):
     __tablename__ = 'registered_scores_osu'
 
+    __mapper_args__ = {"concrete": True, "polymorphic_identity": "osu"}
+
     def set_details(self, info):
         super().set_details(info)
 
 class TaikoScore(Score):
     __tablename__ = 'registered_scores_taiko'
+
+    __mapper_args__ = {"concrete": True, "polymorphic_identity": "taiko"}
 
     def set_details(self, info):
         super().set_details(info)
@@ -99,11 +124,15 @@ class TaikoScore(Score):
 class CatchScore(Score):
     __tablename__ = 'registered_scores_catch'
 
+    __mapper_args__ = {"concrete": True, "polymorphic_identity": "fruits"}
+
     def set_details(self, info):
         super().set_details(info)
 
 class ManiaScore(Score):
     __tablename__ = 'registered_scores_mania'
+
+    __mapper_args__ = {"concrete": True, "polymorphic_identity": "mania"}
 
     def set_details(self, info):
         super().set_details(info)
@@ -189,6 +218,7 @@ class RegisteredUser(Base):
     avatar_url = Column(String)
     playmode = Column(Enum(PlaymodeEnum))
     last_updated = Column(DateTime)
+    #fetched_catch_converts = Column(Boolean)
     track_osu = Column(Boolean)
     track_taiko = Column(Boolean)
     track_fruits = Column(Boolean)
@@ -218,7 +248,6 @@ class RegisteredUserTag(Base):
     mod = Column(Boolean)
     date_added = Column(DateTime)
 
-
 class Tags(Base):
     __tablename__ = 'group_tags'
 
@@ -226,3 +255,85 @@ class Tags(Base):
     tag_name = Column(String, primary_key=True)
     tag_owner = Column(Integer, ForeignKey('registered_users.user_id'))
     date_created = Column(DateTime)
+
+
+# Write a function to add a beatmapset into the database. (This will be a helper function that should be run uhhh idk when)
+# The easiest thing to do is just run it every hour or something, and then have a fallback on the front end for beatmaps not found
+#   This is the best idea I think. We can run a sql query that right joins the scores and beatmaps tables. If the length
+#   of the result does not match the length of scores, then we can search the results for missing beatmap(s) and snurp them.
+#   I should make a beatmapService.
+
+# Another thing you can do is whenever a new score is found, just snurp that beatmap into the database. This might be expensive though.
+# Write a script to scan for all new ranked, loved, or approved beatmapset ids (This script will be a cron job that runs every 4 hours)
+
+class BeatmapSet(Base):
+    __tablename__ = 'osu_beatmapsets'
+
+    beatmapset_id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer)
+    artist = Column(String)
+    artist_unicode = Column(String)
+    title = Column(String)
+    title_unicode = Column(String)
+    tags = Column(String)
+
+    bpm = Column(Float)
+    versions_available = Column(Integer)
+    approved = Column(Integer) # TODO make enum
+    approved_date = Column(DateTime)
+    submit_date = Column(DateTime)
+    last_update = Column(DateTime)
+    genre_id = Column(Integer)
+    language_id = Column(Integer)
+    nsfw = Column(Boolean)
+
+    beatmaps: Mapped[List["Beatmap"]] = relationship()
+
+    def set_details(self, info: Beatmapset):
+        self.beatmapset_id = info.id
+        self.owner_id = info.user_id
+        self.artist = info.artist
+        self.artist_unicode = info.artist_unicode
+        self.title = info.title
+        self.title_unicode = info.title_unicode
+        self.tags = info.tags
+
+        self.bpm = info.bpm
+        self.versions_available = len(info.beatmaps)
+        self.approved = info.status.value # TODO test this
+        self.approved_date = info.ranked_date
+        self.submit_date = info.submitted_date
+        self.last_update = info.last_updated
+        self.genre_id = info.genre
+        self.language_id = info.language
+        self.nsfw = info.nsfw
+
+class Beatmap(Base):
+    __tablename__ = "osu_beatmaps"
+
+    beatmap_id = Column(Integer, primary_key=True)
+    beatmapset_id = Column(Integer, ForeignKey('osu_beatmapsets.beatmapset_id'))
+    mapper_id = Column(Integer)
+    checksum = Column(String)
+    version = Column(String)
+    total_length = Column(Integer)
+    hit_length = Column(Integer)
+    count_total = Column(Integer)
+    count_normal = Column(Integer)
+    count_slider = Column(Integer)
+    count_spinner = Column(Integer)
+    hp = Column(Float)
+    cs = Column(Float)
+    od = Column(Float)
+    ar = Column(Float)
+    playmode = Column(Enum(PlaymodeEnum))
+    approved = Column(Integer) # TODO make enum# 1 ranked, 2 approved, 4 loved
+    last_update = Column(DateTime)
+    stars = Column(Float)
+    max_combo = Column(Integer)
+    bpm = Column(Float)
+
+    scores: Mapped[List["Score"]] = relationship(back_populates="beatmap")
+    beatmapset: Mapped["BeatmapSet"] = relationship(back_populates="beatmaps")
+
+    # TODO write set_details
