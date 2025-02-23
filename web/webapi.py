@@ -10,7 +10,7 @@ from dependencies import verify_token, verify_admin, create_access_token, Regist
 from database.ORM import ORM
 from database.userService import get_user_from_apikey, register_user, count_users, set_user_authentication
 from database.tagService import count_tags
-from database.scoreService import get_total_scores
+from database.scoreService import count_scores
 from database.util import parse_score_filters
 import dotenv
 import os
@@ -193,7 +193,7 @@ def get_fetch_queue():
     return {"message": "Moved to /fetch/fetch_queue"}
 
 @app.get('/today_summary', status_code=status.HTTP_200_OK)
-def get_today_summary():
+async def get_today_summary():
     """
     Returns the number of scores submitted in each mode for today
     """
@@ -202,7 +202,7 @@ def get_today_summary():
     filter_string = 'date>='+datetime.date.today().strftime('%Y-%m-%d')
     data = {}
     for mode in ['osu', 'taiko', 'fruits', 'mania']:
-        data[mode] = get_total_scores(session, mode, filters=parse_score_filters(mode, filter_string))
+        data[mode] = await count_scores(session, mode, score_filters=parse_score_filters(mode, filter_string))
     session.close()
     return data
 
@@ -212,10 +212,10 @@ async def get_database_summary():
     Returns the number of scores in the database
     """
     session = orm.sessionmaker()
-    num_osu_scores = get_total_scores(session, mode='osu')
-    num_taiko_scores = get_total_scores(session, mode='taiko')
-    num_catch_scores = get_total_scores(session, mode='fruits')
-    num_mania_scores = get_total_scores(session, mode='mania')
+    num_osu_scores = await count_scores(session, mode='osu')
+    num_taiko_scores = await count_scores(session, mode='taiko')
+    num_catch_scores = await count_scores(session, mode='fruits')
+    num_mania_scores = await count_scores(session, mode='mania')
     num_registered_users = count_users(session)
     num_tags, num_users_tagged = count_tags(session)
     session.close()
