@@ -1,4 +1,4 @@
-from ossapi import Ossapi, Grant, BeatmapPlaycount, Scope
+from ossapi import Ossapi, Grant, BeatmapPlaycount, Scope, ScoreType
 import dotenv
 import os
 from ratelimit import limits, sleep_and_retry
@@ -15,7 +15,7 @@ ONE_MINUTE = 60
 class OsuApiAuthService:
 
     # Note that instantiating this with override will cause problems most likely im sorgy so just don't use it unless youre testing something
-    def __init__(self, user_id: int, access_token: str, override=False):
+    def __init__(self, user_id: int, access_token: str or None = None, override=False):
         self.user_id = user_id
         if override:
             # Use my access token
