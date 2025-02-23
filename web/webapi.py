@@ -122,24 +122,38 @@ def main_page(request: Request, authorization: RegisteredUserCompact = Depends(h
                                                    'profile_avatar': user.avatar_url})
 
 @app.get("/login", status_code=status.HTTP_200_OK)
-async def login_via_osu():
+async def login_via_osu(req: Request):
     """
     Sends user to the osu oauth page
     """
-    return RedirectResponse(url='https://osu.ppy.sh/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=public' % (webclient_id, redirect_uri))
+    if os.getenv('apisubdomain') in req.headers['referer']:
+        url = 'https://osu.ppy.sh/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=public' % (
+        webclient_id, redirect_uri)
+    else:
+        url = 'https://osu.ppy.sh/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=public' % (
+        webclient_id, os.getenv('REDIRECT_URI_FRONT'))
+    return RedirectResponse(url=url)
+
+@app.get("/auth_front", status_code=status.HTTP_200_OK)
+async def auth_to_front(code: str):
+    return await auth_via_osu(code, os.getenv('FRONTDOMAIN'))
 
 @app.get("/auth", status_code=status.HTTP_200_OK)
-async def auth_via_osu(code: str):
+async def auth_via_osu(code: str, override_redirect: str or None = None):
     """
     The callback for osu oauth
     """
+    if override_redirect:
+        callback_url = os.getenv('REDIRECT_URI_FRONT')
+    else:
+        callback_url = redirect_uri
     headers = {'Accept': 'application/json',
                'Content-Type': 'application/x-www-form-urlencoded',}
     params = {'client_id': str(webclient_id),
               'client_secret': str(webclient_secret),
               'code': code,
               'grant_type': 'authorization_code',
-              'redirect_uri': redirect_uri,}
+              'redirect_uri': callback_url,}
     r = requests.post(url='https://osu.ppy.sh/oauth/token', data=params, headers=headers).json()
 
     # If everything is successful, we can generate their database key as described by Haruhime and store that in the database
@@ -161,8 +175,12 @@ async def auth_via_osu(code: str):
         set_user_authentication(session, user_data['id'], apikey, access_token, refresh_token, datetime.datetime.now() + datetime.timedelta(seconds=expires_in))
 
         access_token = create_access_token({'user_id': user_data['id'], 'username': user.username, 'avatar_url': user.avatar_url, 'apikey': apikey, 'catch_playtime': user_data['statistics']['play_time']})
-        response = RedirectResponse(url='/')
-        response.set_cookie(key='session_token', value=access_token, httponly=True, secure=True)
+
+        if override_redirect:
+            response = RedirectResponse(url=os.getenv('FRONTDOMAIN'))
+        else:
+            response = RedirectResponse(url='/')
+        response.set_cookie(key='session_token', value=access_token, httponly=True, secure=True, domain=os.getenv("DOMAIN"))
 
         return response
     return {"message": "Something has gone wrong. Please try again and let enslow know if you continue to have issues!"}
