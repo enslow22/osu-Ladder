@@ -43,6 +43,12 @@ class Metric(str, Enum):
     accuracy = 'accuracy'
     date = 'date'
 
+class ScoreReturnFormat(str, Enum):
+    verbose = 'verbose'
+    readable = 'readable'
+    minimal = 'minimal'
+    none = 'none'
+
 class ScoreGroupBy(str, Enum):
     user_id = 'user_id'
     beatmap_id = 'beatmap_id'

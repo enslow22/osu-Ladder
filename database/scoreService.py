@@ -1,8 +1,10 @@
 from collections.abc import Sequence
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import Session
-from models import Score
-from util import get_mode_table, parse_score_filters, parse_mod_filters
+
+from database.models import Beatmap, Score, BeatmapSet
+from database.util import parse_user_filters
+from util import get_mode_table
 from typing import List
 from ossapi import Score as ossapiScore
 
@@ -35,34 +37,152 @@ def get_user_scores(session: Session, beatmap_id: int, user_id: int, mode: str o
     ).filter(*filters).filter(*mods).order_by(getattr(table, metric).desc())
     return session.scalars(stmt).all()
 
-def get_scores(session: Session, mode: str or int, filters: tuple = (), mod_filters: tuple = (), metric: str = 'lazer_score', desc: bool = True, limit=50):
+async def get_scores(session: Session, mode: str or int, metric: str = 'lazer_score', desc: bool = True,
+               limit=100,
+               mod_filters: tuple = (),
+               score_filters: tuple = (),
+               beatmap_filters: tuple = None,
+               beatmapset_filters: tuple = None,
+               ) -> Sequence[Score]:
     """
-    Returns a list of scores with the given filters, regardless of beatmap or user.
+    Select a list of scores based on some criteria
     """
-    table = get_mode_table(mode)
-    sort_order = getattr(table, metric)
+
+    # Get mode
+    score_type_table = get_mode_table(mode)
+
+    # Parse order and metric
+    sort_order = getattr(score_type_table, metric)
     if desc:
         sort_order = sort_order.desc()
-    stmt = select(table).filter(*filters).filter(*mod_filters).order_by(sort_order).limit(limit)
+
+    # Apply filters
+    stmt = select(score_type_table).filter(*score_filters).filter(*mod_filters)
+    if beatmap_filters:
+        stmt = stmt.join(Beatmap, score_type_table.beatmap_id == Beatmap.beatmap_id).filter(*beatmap_filters)
+    if beatmapset_filters:
+        if not beatmap_filters:
+            stmt = stmt.join(Beatmap, score_type_table.beatmap_id == Beatmap.beatmap_id)
+        stmt = stmt.join(BeatmapSet, Beatmap.beatmapset_id == BeatmapSet.beatmapset_id).filter(*beatmapset_filters)
+
+    # Order and limit results
+    stmt = stmt.order_by(sort_order).limit(limit)
+
     return session.scalars(stmt).all()
 
-def get_total_scores(session: Session, mode: str or int, filters: tuple = (), mods: tuple = (), group_by: str | None = None, limit: int = 50):
-    """
-    Returns the total number of scores with the listed filters
-    """
-    tbl = get_mode_table(mode)
-    if group_by:
-        stmt = select(getattr(tbl, group_by), func.count(getattr(tbl, 'score_id'))).filter(*filters).filter(*mods).group_by(getattr(tbl, group_by)).order_by(func.count(getattr(tbl, 'score_id')).desc()).limit(limit)
+async def count_scores(session: Session, mode: str or int, group_by: str | None = None, desc: bool = True, limit = 1000,
+                         mod_filters: tuple = (),
+                         score_filters: tuple = (),
+                         beatmap_filters: tuple = None,
+                         beatmapset_filters: tuple = None) -> List[dict]:
+        """
+        Returns the number of scores with the given filters
+        If group by is None, do not group by anything and instead just count the total.
+        """
+
+        score_type_table = get_mode_table(mode)
+
+        sort_order = func.count(getattr(score_type_table, 'score_id'))
+        if desc:
+            sort_order = func.count(getattr(score_type_table, 'score_id')).desc()
+
+        # Choose group by
+        if group_by:
+            stmt = select(getattr(score_type_table, group_by), func.count(score_type_table.score_id))
+        else:
+            stmt = select(func.count(score_type_table.score_id))
+
+        # Apply all WHERE clauses
+        stmt = stmt.filter(*score_filters).filter(*mod_filters)
+        if beatmap_filters:
+            stmt = stmt.join(Beatmap, score_type_table.beatmap_id == Beatmap.beatmap_id).filter(*beatmap_filters)
+        if beatmapset_filters:
+            if not beatmap_filters:
+                stmt = stmt.join(Beatmap, score_type_table.beatmap_id == Beatmap.beatmap_id)
+            stmt = stmt.join(BeatmapSet, Beatmap.beatmapset_id == BeatmapSet.beatmapset_id).filter(*beatmapset_filters)
+
+        # Group by field and sort
+        if group_by:
+            stmt = stmt.group_by(getattr(score_type_table, group_by)).order_by(sort_order)
+        else:
+            stmt = stmt.order_by(sort_order)
+
+        # Limit results
+        stmt = stmt.limit(limit)
+
+        # Parse and format response
         res = list(session.execute(stmt).fetchall())
-        return [{group_by: x[0], "count": x[1]} for x in res]
+        if group_by:
+            return [{group_by: x[0], "count": x[1]} for x in res]
+        else:
+            return res[0][0]
+
+async def get_top_n(session: Session, user_id: int, mode: str or int, metric: str = 'pp', desc = True, limit: int = 100, unique: bool = True,
+              mod_filters: tuple = (),
+              score_filters: tuple = (),
+              beatmap_filters: tuple = None,
+              beatmapset_filters: tuple = None) -> Sequence[Score]:
+    """
+    For a user, get their top n plays by some metric and filters. Also has the option to return one score per beatmap
+    """
+
+    score_type_table = get_mode_table(mode)
+
+    sort_order = getattr(score_type_table, metric)
+    if desc:
+        sort_order = sort_order.desc()
+    user_filter = parse_user_filters(mode, user_id)
+
+    if not unique:
+        return get_scores(session, mode, 'pp', desc, limit, mod_filters, user_filter + score_filters, beatmap_filters, beatmapset_filters)
     else:
-        stmt = select(func.count(getattr(tbl, 'score_id'))).filter(*filters).filter(*mods)
-        return session.scalars(stmt).one()
+        # Select the highest pp play for each beatmap
+        subq = select(score_type_table.beatmap_id, func.max(getattr(score_type_table, metric)).label('max_metric')).filter(*user_filter).filter(*mod_filters).filter(*score_filters).group_by(score_type_table.beatmap_id).subquery()
+        stmt = select(score_type_table).join(subq, (score_type_table.beatmap_id == subq.c.beatmap_id) & (getattr(score_type_table, metric) == subq.c.max_metric) ).filter(*user_filter).order_by(sort_order).limit(limit)
+
+        if beatmap_filters:
+            stmt = stmt.join(Beatmap, score_type_table.beatmap_id == Beatmap.beatmap_id).filter(*beatmap_filters)
+        if beatmapset_filters:
+            if not beatmap_filters:
+                stmt = stmt.join(Beatmap, score_type_table.beatmap_id == Beatmap.beatmap_id)
+            stmt = stmt.join(BeatmapSet, Beatmap.beatmapset_id == BeatmapSet.beatmapset_id).filter(*beatmapset_filters)
+
+        return session.scalars(stmt).all()
+
+def compact_scores_list(scores: List[Score] or Score, metric: str = 'lazer_score'):
+    scores = [{"user id": x.user_id,
+               "score id": x.score_id,
+               "beatmap id": x.beatmap_id,
+               "beatmap_title": x.beatmap.beatmapset.title,
+               "difficulty name": x.beatmap.version,
+               "date": x.date,
+               "mods": x.enabled_mods,
+               "mods settings": x.enabled_mods_settings,
+               metric: getattr(x, metric),
+               } for x in scores]
+    return scores
+
+def format_scores_list(scores: List[Score] or Score, metric: str = 'lazer_score'):
+
+    for score in scores:
+        print(score.to_dict())
+    return scores
 
 if __name__ == '__main__':
 
     from ORM import ORM
     orm = ORM()
-    filters = parse_mod_filters('osu', '!HRDTHDCL')
-    other_filters = parse_score_filters('osu', 'date<2024-01-01')
-    print(get_total_scores(orm.sessionmaker(), mode=0, filters=other_filters, mods=filters))
+    session = orm.sessionmaker()
+
+    from util import parse_beatmap_filters, parse_beatmapset_filters, parse_score_filters, parse_mod_filters
+    from sqlalchemy.dialects import mysql
+
+    mods = parse_mod_filters('osu', '+EZ')
+    sf = parse_score_filters('osu', 'replay=1')
+    bmf = parse_beatmap_filters("stars>5")
+    bmsf = parse_beatmapset_filters("language_id=2")
+
+    #a = get_scores(session, 'osu', 'lazer_score',True, 1000, mod_filters=mods, score_filters=sf, beatmap_filters=bmf, beatmapset_filters=bmsf)
+    #b = format_scores_list(a, 'lazer_score')
+    #a = get_top_n(session, 124493, 'osu', 'pp', True, 100, True, beatmapset_filters=bmsf, mod_filters=mods)
+

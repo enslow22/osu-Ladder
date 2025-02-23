@@ -62,34 +62,6 @@ def count_users(session: Session) -> int:
     """
     return session.scalars(func.count(RegisteredUser.user_id)).one()
 
-def get_top_n(session: Session, user_id: int, mode: str or int, filters: tuple, mods: tuple, metric: str = 'pp', number: int = 100, unique: bool = True, desc = True) -> List[Score]:
-    """
-    For a user, get their top n plays by some metric and filters. Also has the option to return one score per beatmap
-    """
-    if not isinstance(filters, tuple):
-        filters = tuple(filters)
-    if not isinstance(mods, tuple):
-        mods = tuple(mods)
-    table = get_mode_table(mode)
-
-    sort_order = getattr(table, metric)
-    if desc:
-        sort_order = sort_order.desc()
-
-
-    if not unique:
-        stmt = select(table).filter(table.user_id == user_id).filter(*filters).filter(*mods).order_by(
-            sort_order).limit(number)
-        res = session.scalars(stmt).all()
-        return list(res)
-    else:
-
-        # Select the highest pp play for each beatmap
-        subq = select(table.beatmap_id, func.max(getattr(table, metric)).label('max_pp')).filter(table.user_id == user_id).filter(*filters).filter(*mods).group_by(table.beatmap_id).subquery()
-        stmt = select(table).join(subq, (table.beatmap_id == subq.c.beatmap_id) & (getattr(table, metric) == subq.c.max_pp) ).filter(table.user_id == user_id).filter(*filters).filter(*mods).order_by(sort_order).limit(number)
-        res = list(session.scalars(stmt).all())
-        return res
-
 def refresh_tokens(session: Session, user: RegisteredUser | int) -> bool:
     """
     Refresh a user's access token
