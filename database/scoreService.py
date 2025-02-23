@@ -134,7 +134,7 @@ async def get_top_n(session: Session, user_id: int, mode: str or int, metric: st
     user_filter = parse_user_filters(mode, user_id)
 
     if not unique:
-        return get_scores(session, mode, 'pp', desc, limit, mod_filters, user_filter + score_filters, beatmap_filters, beatmapset_filters)
+        return await get_scores(session, mode, 'pp', desc, limit, mod_filters, user_filter + score_filters, beatmap_filters, beatmapset_filters)
     else:
         # Select the highest pp play for each beatmap
         subq = select(score_type_table.beatmap_id, func.max(getattr(score_type_table, metric)).label('max_metric')).filter(*user_filter).filter(*mod_filters).filter(*score_filters).group_by(score_type_table.beatmap_id).subquery()
