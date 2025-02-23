@@ -318,7 +318,6 @@ class Beatmap(Base):
     version = Column(String)
     total_length = Column(Integer)
     hit_length = Column(Integer)
-    count_total = Column(Integer)
     count_normal = Column(Integer)
     count_slider = Column(Integer)
     count_spinner = Column(Integer)
@@ -328,7 +327,7 @@ class Beatmap(Base):
     ar = Column(Float)
     playmode = Column(Enum(PlaymodeEnum))
     approved = Column(Integer) # TODO make enum# 1 ranked, 2 approved, 4 loved
-    last_update = Column(DateTime)
+    last_updated = Column(DateTime)
     stars = Column(Float)
     max_combo = Column(Integer)
     bpm = Column(Float)
