@@ -42,64 +42,8 @@ tags_metadata = [
     }
 ]
 
-description = """
-## osu!lb api documentation
-
-osu!lb is a scores database. It stores all modes, and only excludes taiko and mania converts. You can register yourself to get your scores fetched by the api. Once you're registered, osu!lb will constantly update itself will all your new scores. 
-
----
-
-### Mods:
-
-You have three options for filtering scores by mods:
-- Exact
-    - Start the mod string with '!', and osu!lb will find all scores with that __exact__ mod combination.
-    - Note that 'CL' is a mod, so nomod plays should have the string 'CL' if set on stable or '' if set on lazer.
-    - Example: 'mods=!HDHRDT', 'mods=!EZHTHD'.
-- Including
-    - Start the string of mods to be included with '+'. osu!lb will return all scores that include those mods.
-    - Example: 'mods=+HRHD', 'mods=+EZ+HD+RX'
-- Excluding
-    - Start the string of mods to be excluded with '-'. osu!lb will return all scores that exclude those mods.
-    - Example: 'mods=-HD', 'mods=-DT-HT-RC'
-
-You can combine including and excluding mod filters as well.
-For example, the string 'mods=+HR-HDDT' will return all scores that have HR, except the ones that also have HD or DT    
-
----
-
-### General Filters:
-
-osu!lb stores the following data for every score in the database:
-
-| Column Name   | Type                                           | Description                                                                                    |
-|---------------|------------------------------------------------|------------------------------------------------------------------------------------------------|
-| user_id       | int                                            | The user who set the play                                                                      |
-| date          | datetime                                       | The date and time the score was submitted in UTC. Formatted as "YYYY-MM-DD HH:MM:SS"           |
-| pp            | float                                          | The pp value of the score.                                                                     |
-| rank          | Enum('XH', 'X', 'SH', 'S', 'A', 'B', 'C', 'D') | The awarded rank of the score.                                                                 |
-| perfect       | bool                                           | If the score has perfect combo                                                                 |
-| max_combo     | int                                            | The highest combo achieved in the score                                                        |
-| replay        | bool                                           | Does a replay exist on bancho? (This information may be out of date as bancho deletes replays) |
-| stable_score  | int                                            | The score amount on stable. (Will be 0 for scores set on lazer)                                |
-| lazer_score   | int                                            | The score amount on lazer.                                                                     |
-| classic_score | int                                            | The score amount on lazer classic scoring. (Will be -1 for some scores)                        |
-| count_miss    | int                                            | The number of misses                                                                           |
-| count_50      | int                                            | The number of 50s                                                                              |
-| count_100     | int                                            | The number of 100s                                                                             |
-| count_300     | int                                            | The number of 300s                                                                             |
-
-- You can filter through these with operators: (=, !=, >, <, <=, >=, /)
-- / represents the contains operator and it is used only for rank. The string rank/XHSH will only return scores that are hidden S or hidden SS
-- For dates, you can also compare with the format "YYYY-MM-DD" (e.g. date<2024-07-27 will return all scores older than July 27th 2024, 00:00:00)
-- You can add multiple filters by separating them with withspace or commas (e.g. pp<1000 pp>800 date<2023-01-01 will return all scores earlier than 2023 with pp values between 800 and 1000)
-
-### Metrics:
-
-Metrics are how the returned data is sorted. You can sort the data by pp, stable_score, lazer_score, classic_score, accuracy, or date. 
-
-You can also sort by descending (default) or ascending
-"""
+with open("web/description.md", 'r') as f:
+    description = f.read(-1)
 
 app = FastAPI(redoc_url=None, openapi_tags=tags_metadata, description=description)
 
