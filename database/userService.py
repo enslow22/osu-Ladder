@@ -5,12 +5,11 @@ Post and registration methods return True or False depending on if the operation
 """
 import datetime
 import os
-from typing import List
-from util import get_mode_table
+from typing import Sequence
 from osuApi import get_user_info
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from database.models import RegisteredUser, RegisteredUserTag, Score
+from database.models import RegisteredUser, Score
 
 def register_user(session: Session, user_id: int) -> (bool, RegisteredUser):
     """
@@ -106,7 +105,7 @@ def refresh_tokens(session: Session, user: RegisteredUser | int) -> bool:
             'client_secret': os.getenv('WEBCLIENT_SECRET'),
             'grant_type': 'refresh_token',
             'refresh_token': user.refresh_token,
-            'scope': 'public'}
+            'scope': 'public+identify'}
     r = requests.post('https://osu.ppy.sh/oauth/token', headers=headers, data=data)
     payload = r.json()
     print(payload)
@@ -118,7 +117,7 @@ def refresh_tokens(session: Session, user: RegisteredUser | int) -> bool:
         return True
     return False
 
-def get_profile_pp(scores: List[Score], bonus = True, n = 100) -> int:
+def get_profile_pp(scores: Sequence[Score], bonus = True, n = 100) -> int:
     """
     Returns profile pp with only that list of scores considered
     """
