@@ -1,6 +1,12 @@
-# osu!lb api documentation
+# osu!Lab api documentation
 
-osu!lb is a scores database. It stores all modes, and only excludes taiko and mania converts. You can register yourself to get your scores fetched by the api. Once you're registered, osu!lb will constantly update itself will all your new scores. 
+### At its heart, osu!Lab is just a scores database. 
+
+There are two things that separate osu!Lab from other score databases:
+- *It stores scores from **all modes**, except for taiko and mania converts.*
+- *It stores multiple scores per beatmap per user*
+
+You can register yourself to get your scores fetched by the api. Once you're registered, osu!lb will constantly update itself will all your new scores. 
 
 ---
 
@@ -8,14 +14,14 @@ osu!lb is a scores database. It stores all modes, and only excludes taiko and ma
 
 > You have three options for filtering scores by mods:
 - ***Exact***
-    - Start the mod string with "!", and osu!lb will find all scores with that __exact__ mod combination.
+    - Start the mod string with "!", and osu!Lab will find all scores with that __exact__ mod combination.
     - Note that "CL" is a mod, so nomod plays should have the string "CL" if set on stable and nothing if set on lazer.
     - Example: 'mods=!HDHRDT', 'mods=!EZHTHD'.
 - ***Including***
-    - Start the string of mods to be included with '+'. osu!lb will return all scores that include those mods.
+    - Start the string of mods to be included with '+'. osu!Lab will return all scores that include those mods.
     - Example: 'mods=+HRHD', 'mods=+EZ+HD+RX'
 - ***Excluding***
-    - Start the string of mods to be excluded with "-". osu!lb will return all scores that exclude those mods.
+    - Start the string of mods to be excluded with "-". osu!Lab will return all scores that exclude those mods.
     - Example: "mods=-HD", "mods=-DT-HT-RC"
 
 >You can combine including and excluding mod filters as well.
