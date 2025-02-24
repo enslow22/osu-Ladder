@@ -1,8 +1,8 @@
-# osu!LB
-osu!LB fetches your scores from osu! servers and lets you explore them.
+# osu!Lab
+osu!Lab fetches your scores from osu! servers and lets you explore them.
 
-To register to osu!LB, sign in with your osu! account at [api.enslow.me](api.enslow.me) and follow the instructions.
-osu!LB will start to fetch your scores.
+To register to osu!Lab, sign in with your osu! account at [api.enslow.me](api.enslow.me) and follow the instructions.
+osu!Lab will start to fetch your scores.
 
 ***
 
