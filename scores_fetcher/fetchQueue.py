@@ -105,7 +105,7 @@ class TaskQueue:
 
                 new_scores = []
                 # Get the default mode score first
-                if not non_converts:
+                if non_converts:
                     new_scores += auth_osu_api.get_user_scores_on_map(beatmap['beatmap_id'])
 
                 # If the map has converts and the user wants converts, then get those as well.
