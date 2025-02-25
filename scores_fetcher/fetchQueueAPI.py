@@ -14,7 +14,7 @@ fetchapp = FastAPI(docs_url="/docs", redoc_url=None)
 orm = ORM()
 tq = TaskQueue(orm.sessionmaker)
 
-def enqueue_user(user_id: int, get_non_converts: bool, catch_converts: bool):
+def enqueue_user(user_id: int, get_non_converts: bool, catch_converts: bool, override_api_auth: bool = False):
     # Verify that the user can be fetched
     user_queue = [x[1].user_id for x in tq.q.queue]
     session = orm.sessionmaker()
@@ -35,7 +35,7 @@ def enqueue_user(user_id: int, get_non_converts: bool, catch_converts: bool):
     if not get_non_converts and not catch_converts:
         return {'message': 'You must queue for something!'}
 
-    if tq.enqueue(user_id, get_non_converts, catch_converts):
+    if tq.enqueue(user_id, get_non_converts, catch_converts, override_api_auth=override_api_auth):
         return {'message': 'Success! You have been added to the queue.'}
     return {'message': 'Something went wrong. Relog and try again if your scores have not already been fetched.'}
 
@@ -64,11 +64,11 @@ def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)]
     return enqueue_user(user_id, True, catch_converts)
 
 @fetchapp.post("/enqueue_user", status_code=status.HTTP_202_ACCEPTED)
-def initial_fetch_user(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int, non_converts: Annotated[ bool , Query(description='Fetch non_converts?')] = False, catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
+def initial_fetch_user(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int, non_converts: Annotated[ bool , Query(description='Fetch non_converts?')] = False, catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False, override_api_auth: bool = False):
     """
     Adds any user to the fetch queue
     """
-    return enqueue_user(user_id, non_converts, catch_converts)
+    return enqueue_user(user_id, non_converts, catch_converts, )
 
 @fetchapp.post("/remove_from_queue", status_code=status.HTTP_202_ACCEPTED)
 def remove_from_queue(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int):
