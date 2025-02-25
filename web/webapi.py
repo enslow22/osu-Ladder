@@ -70,7 +70,7 @@ async def login_via_osu(req: Request):
     """
     Sends user to the osu oauth page
     """
-    if os.getenv('apisubdomain') in req.headers['referer']:
+    if os.getenv('APISUBDOMAIN') in req.headers['referer']:
         url = 'https://osu.ppy.sh/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=public' % (
         webclient_id, redirect_uri)
     else:
