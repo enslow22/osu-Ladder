@@ -64,13 +64,14 @@ class TaskQueue:
         try:
             print('Starting initial_fetch for %s. Fetching non converts: %s. Fetching catch converts: %s' % (user.username, non_converts, converts))
 
-            # Check refresh tokens
-            if user.expires_at < datetime.datetime.now():
-                success = refresh_tokens(session, user)
-                session.close()
-                if not success:
-                    print('Something went wrong with %s' % user.username)
-                    raise Exception
+            if not override_api_auth:
+                # Check refresh tokens
+                if user.expires_at < datetime.datetime.now():
+                    success = refresh_tokens(session, user)
+                    session.close()
+                    if not success:
+                        print('Something went wrong with %s' % user.username)
+                        raise Exception
 
             # Try to connect to auth client
             auth_osu_api = OsuApiAuthService(user.user_id, user.access_token, override=override_api_auth)
