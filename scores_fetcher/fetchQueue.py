@@ -15,18 +15,17 @@ NUM_THREADS = int(os.getenv('NUM_THREADS'))
 
 class TaskQueue:
 
-    def __init__(self, sessionmaker, bypass_user_auth=False):
+    def __init__(self, sessionmaker):
         self.sessionmaker = sessionmaker
         self.q = queue.PriorityQueue()
         self.pool = multiprocessing.pool.ThreadPool(processes=NUM_THREADS)
-        self.bypass_user_auth = bypass_user_auth
         self.current = []
         # {'user_id': user.user_id,
         #   'username': user.username,
         #   'catch_converts': catch_converts,
         #   'num_maps': num_maps,}
 
-    def enqueue(self, user_id: int, get_non_converts: bool, get_converts: bool):
+    def enqueue(self, user_id: int, get_non_converts: bool, get_converts: bool, override_api_auth=False):
         """
         Add them to the queue
         1. Get user info from db
@@ -37,7 +36,7 @@ class TaskQueue:
             session = self.sessionmaker()
             user = session.get(RegisteredUser, user_id)
             bonus_priority = get_converts and get_non_converts
-            self.q.put((time.time() + bonus_priority * 43200, user, get_non_converts, get_converts))
+            self.q.put((time.time() + bonus_priority * 43200, user, get_non_converts, get_converts, override_api_auth))
             session.close()
             self.start()
         except Exception as e:
@@ -50,16 +49,16 @@ class TaskQueue:
         Starts the worker and fills the threadpool with tasks
         """
         while len(self.current) < NUM_THREADS and not self.q.empty():
-            time_set, user, non_converts, converts = self.q.get()
+            time_set, user, non_converts, converts, override_api_auth = self.q.get()
             self.current.append({'user_id': user.user_id,
                                  'username': user.username,
                                  'non_converts': non_converts,
                                  'catch_converts': converts,
                                  'num_maps': 'Calculating',
                                  'total_maps': 'Calculating'})
-            self.pool.apply_async(self.process, args=(user, non_converts, converts))
+            self.pool.apply_async(self.process, args=(user, non_converts, converts, override_api_auth))
 
-    def process(self, user: RegisteredUser, non_converts: bool, converts: bool):
+    def process(self, user: RegisteredUser, non_converts: bool, converts: bool, override_api_auth: bool):
 
         session = self.sessionmaker()
         try:
@@ -74,7 +73,7 @@ class TaskQueue:
                     raise Exception
 
             # Try to connect to auth client
-            auth_osu_api = OsuApiAuthService(user.user_id, user.access_token, override=self.bypass_user_auth)
+            auth_osu_api = OsuApiAuthService(user.user_id, user.access_token, override=override_api_auth)
             print('%s accessed the osu api successfully' % user.username)
 
             # Get most played
