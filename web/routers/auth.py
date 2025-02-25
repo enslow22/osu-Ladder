@@ -1,15 +1,18 @@
 import datetime
+
+import fastapi.exceptions
 import sqlalchemy.exc
 from fastapi import APIRouter, Depends, status, Query
+from pydantic import BaseModel
 from starlette.responses import RedirectResponse
 from typing import Optional, Annotated
 from web.dependencies import RegisteredUserCompact, verify_token
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, and_
 from database.ORM import ORM
-from database.models import RegisteredUser, Tags, RegisteredUserTag
+from database.models import RegisteredUser, Leaderboard, LeaderboardSpot
 from database.scoreService import get_user_scores
-from database.tagService import create_tag
 from database.util import parse_score_filters, parse_mod_filters
+from database.leaderboardService import recalculate_user
 from web.apiModels import Mode
 
 router = APIRouter()
@@ -53,129 +56,85 @@ def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)]
     """
     pass
 
-@router.post("/create_new_tag", status_code=status.HTTP_201_CREATED)
-def create_new_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str):
+@router.post("/create_leaderboard", status_code=status.HTTP_201_CREATED)
+def create_leaderboard(token: Annotated[RegisteredUserCompact, Depends(verify_token)], leaderboard_name: str,
+                       description: str,
+                       metric: str,
+                       unique: bool = True,
+                       private: bool = True,
+                       mode: Mode = "osu",
+                       mod_filters: str = None,
+                       score_filters: str = None,
+                       beatmap_filters: str = None,
+                       beatmapset_filters: str = None,):
     session = orm.sessionmaker()
-    stmt = select(Tags).filter(Tags.tag_name == tag_name)
-    a = session.execute(stmt).first()
-    # Tag already exists
-    if a:
-        return {"message": "The tag %s already exists!" % tag_name}
-
-    # User has max tags
-    stmt = select(func.count(Tags.tag_name)).filter(Tags.tag_owner == token['user_id'])
-    if session.scalar(stmt) >= 4:
-        return {"message": "You may have up to 4 tags. Please contact enslow if you need more"}
-    success = create_tag(session, token['user_id'], tag_name)
+    try:
+        new_leaderboard = Leaderboard()
+        new_leaderboard.name = leaderboard_name
+        new_leaderboard.creator_id = token.user_id
+        new_leaderboard.mode = mode
+        new_leaderboard.metric = metric
+        new_leaderboard.unique = unique
+        new_leaderboard.private = private
+        new_leaderboard.description = description
+        new_leaderboard.mod_filters = mod_filters
+        new_leaderboard.score_filters = score_filters
+        new_leaderboard.beatmap_filters = beatmap_filters
+        new_leaderboard.beatmapset_filters = beatmapset_filters
+        session.add(new_leaderboard)
+        session.commit()
+    except:
+        return {"message": f"{leaderboard_name} was not created due to an issue. Maybe a leaderboard with that name already exists?"}
     session.close()
+    return {"message": f"{leaderboard_name} has been successfully created"}
 
-    if success:
-        return {"message": "Success! %s has been created" % tag_name}
-    return {"message": "Something went wrong, and I am not sure what it is."}
-
-@router.post("/delete_tag", status_code=status.HTTP_202_ACCEPTED)
-def delete_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str):
-    # Delete the tag
-    stmt = select(Tags).where(token['user_id'] == Tags.tag_owner).filter(tag_name==Tags.tag_name)
-
+@router.post("/delete_leaderboard", status_code=status.HTTP_201_CREATED)
+def delete_leaderboard(token: Annotated[RegisteredUserCompact, Depends(verify_token)], leaderboard_name: str):
     session = orm.sessionmaker()
-    tag_object = session.scalar(stmt)
-    if not tag_object:
-        return {"message": "%s does not exist" % tag_name}
-    session.delete(tag_object)
-    # If no tags were deleted, we can stop here
-    if len(list(session.deleted)) == 0:
-        return {"message": "%s has not been deleted. You are not the owner of %s" % (tag_name, tag_name)}
-    session.commit()
+    try:
+        stmt = select(Leaderboard).filter(and_(
+            Leaderboard.name == leaderboard_name,
+            Leaderboard.creator_id == token.user_id
+        ))
+        leaderboard = session.scalars(stmt).one()
+        session.delete(leaderboard)
+        session.commit()
+    except:
+        return {"message": f"Either the leaderboard {leaderboard_name} does not exist, or you are not the creator of it"}
+    return {"message": f"{leaderboard_name} has been successfully deleted"}
 
-    return {"message": "%s has been deleted" % tag_name}
-
-@router.post("/add_users_to_tag", status_code=status.HTTP_201_CREATED)
-def add_users_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: Annotated[list[int] | None, Query()]):
-    # Check if the user is a moderator
+@router.post("/add_users_to_leaderboard", status_code=status.HTTP_201_CREATED)
+async def add_user_to_leaderboard(token: Annotated[RegisteredUserCompact, Depends(verify_token)], user_ids: Annotated[list[int] | None, Query()], leaderboard_name: str):
+    # Check if leaderboard is public
     session = orm.sessionmaker()
-    a = session.get(RegisteredUserTag, (token['user_id'], tag_name))
-    if not a or not a.mod:
-        return {"message": "You must be a moderator of the group to add members."}
+    stmt = select(Leaderboard).filter(Leaderboard.name == leaderboard_name)
+    leaderboard = session.scalars(stmt).one()
+    try:
+        if (leaderboard.private and token['user_id'] == leaderboard.creator_id) or not leaderboard.private:
 
-    now = datetime.datetime.now()
-    num_added = 0
-    already_in_tag = []
-    # Add the users to the tag
-    for user_id in user_ids:
-        try:
-            new_tag = RegisteredUserTag(user_id=user_id, tag=tag_name, mod=False, date_added=now)
-            session.add(new_tag)
+            for user_id in user_ids:
+                # Check that user is registered
+                # If they are not registered, then pass
+                print('hi')
+                if session.get(RegisteredUser, user_id):
+                    print('hfdsafdsafdsa')
+                    new_leaderboard_spot = LeaderboardSpot()
+                    new_leaderboard_spot.leaderboard_id = leaderboard.leaderboard_id
+                    new_leaderboard_spot.user_id = user_id
+                    session.add(new_leaderboard_spot)
+                    session.commit()
+                    await recalculate_user(session, Leaderboard.name, user_id)
+                else:
+                    continue
+
             session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            already_in_tag.append(str(user_id))
-            session.rollback()
-            continue
-        num_added += 1
-    session.close()
 
-    info_str = '' if len(already_in_tag) == 0 else " The users %s were not added because they are not registered or because they are already in the tag." % (str(already_in_tag))
-    return {"message": "Added %s users to %s.%s" % (str(num_added), tag_name, info_str)}
-
-@router.post("/remove_users_from_tag", status_code=status.HTTP_202_ACCEPTED)
-def remove_users_from_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: Annotated[list[int] | None, Query()]):
-    # Check if the user is a moderator
-    session = orm.sessionmaker()
-    a = session.get(RegisteredUserTag, (token['user_id'], tag_name))
-    if not a or not a.mod:
-        return {"message": "You must be a moderator of the group to remove members."}
-
-    stmt = select(func.count(RegisteredUserTag.user_id)).where(RegisteredUserTag.tag == tag_name).where(RegisteredUserTag.user_id.in_(user_ids)).where(RegisteredUserTag.mod == False)
-    number_users = session.execute(stmt).scalar()
-    stmt = delete(RegisteredUserTag).where(RegisteredUserTag.tag == tag_name).where(RegisteredUserTag.user_id.in_(user_ids)).where(RegisteredUserTag.mod == False)
-    session.execute(stmt)
-    session.commit()
-    session.close()
-    return {"message": "%s users were deleted from %s" % (str(number_users), tag_name)}
-
-@router.post("/add_tag_mods", status_code=status.HTTP_202_ACCEPTED)
-def add_mods_to_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: Annotated[list[int] | None, Query()]):
-    # Check if user is the owner of the tag
-    session = orm.sessionmaker()
-    stmt = select(Tags).filter(tag_name==Tags.tag_name).filter(token['user_id'] == Tags.tag_owner)
-    if not session.execute(stmt).first():
-        return {"message: You are not the owner of %s, or it does not exist" % tag_name}
-    # Add mods to the tag here.
-
-    num_updated = 0
-    not_in_tag = []
-    for user_id in user_ids:
-        user_tag = session.get(RegisteredUserTag, (user_id, tag_name))
-        if user_tag:
-            if user_tag.mod:
-                continue
-            user_tag.mod = True
-            num_updated += 1
+            return {"message": "Success, users have been added to the leaderboard! They will be calculated momentarily."}
         else:
-            not_in_tag.append(str(user_id))
-    session.commit()
-    session.close()
-    info_str = '' if len(not_in_tag) == 0 else " To add %s, add them to the group first." % ' '.join(not_in_tag)
-    return {"message": "Success %s have been given mod for %s.%s" % (str(num_updated), tag_name, info_str)}
-
-@router.post("/remove_tag_mods", status_code=status.HTTP_202_ACCEPTED)
-def remove_mods_from_tag(token: Annotated[RegisteredUserCompact, Depends(verify_token)], tag_name: str, user_ids: Annotated[list[int] | None, Query()]):
-    # Check if user is the owner of the tag
-    session = orm.sessionmaker()
-    stmt = select(Tags).filter(tag_name == Tags.tag_name).filter(token['user_id'] == Tags.tag_owner)
-    if not session.execute(stmt).first():
-        return {"message": "You are not the owner of %s, or it does not exist" % tag_name}
-
-    if token['user_id'] in user_ids:
-        return {"message": "You can not remove yourself as mod."}
-
-    stmt = select(RegisteredUserTag).filter(RegisteredUserTag.user_id.in_(user_ids)).filter(RegisteredUserTag.mod)
-    remove_mods = session.scalars(stmt).all()
-
-    num_removed = 0
-    for user in remove_mods:
-        session.delete(user)
-        num_removed += 1
-    session.commit()
-    session.close()
-    return {"message": "Success %s users have been removed as mod for %s" % (str(num_removed), tag_name)}
+            raise fastapi.exceptions.ValidationException
+    except fastapi.exceptions.ValidationException:
+        return {"message": f"You do not have access to add users to {leaderboard_name}"}
+    except sqlalchemy.exc.IntegrityError:
+        return {"message": f"user id {user_ids} is already in {leaderboard_name}"}
+    except:
+        return {"message": "Something went wrong and users have not been added to the leaderboard."}

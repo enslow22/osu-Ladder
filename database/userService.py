@@ -5,9 +5,10 @@ Post and registration methods return True or False depending on if the operation
 """
 import datetime
 import os
-from typing import Sequence
+from typing import Sequence, List
+from database.util import get_mode_table
 from osuApi import get_user_info
-from sqlalchemy import select, func
+from sqlalchemy import select, func, Date
 from sqlalchemy.orm import Session
 from database.models import RegisteredUser, Score
 
@@ -52,7 +53,7 @@ def update_user_metadata(session: Session, user_id: int) -> bool:
         print('User not found')
         return False
     user_info = get_user_info(user_id)
-    user.set_all(user_info)
+    user.set_all(user_info=user_info)
     session.commit()
     return True
 
@@ -93,12 +94,35 @@ def get_profile_pp(scores: Sequence[Score], bonus = True, n = 100) -> int:
     """
     Returns profile pp with only that list of scores considered
     """
-
     total = 416.666666 if bonus else 0
     scores = scores if n > len(scores) else scores[:n]
     for i, score in enumerate(scores):
         total += score.pp * 0.95**(i-1)
     return total
+
+def top_play_per_day(session: Session, user_id: int, mode: str or int, filters: tuple = (), mods: tuple = (), minimal: bool = True):
+    """
+    Given a user, fetch their highest pp play for each day.
+    """
+    if not isinstance(filters, tuple):
+        filters = tuple(filters)
+    if not isinstance(mods, tuple):
+        mods = tuple(mods)
+
+    table = get_mode_table(mode)
+
+    # I think this method messes up very slightly, but only if a person sets the exact same play on the exact same day.
+    stmt = (select(getattr(table, 'date').cast(Date).label('date'), func.max(getattr(table, 'pp')).label('max_pp'))
+            .filter(getattr(table, 'user_id') == user_id).filter(getattr(table, 'pp').isnot(None))
+            .filter(*filters).filter(*mods)
+            .group_by(getattr(table, 'date').cast(Date))
+            .order_by(getattr(table, 'date').cast(Date)))
+
+    if not minimal:
+        subq = stmt.subquery()
+        stmt = select(table).join(subq, (getattr(table, 'pp') == subq.c.max_pp) & (getattr(table, 'date').cast(Date) == subq.c.date) ).filter(getattr(table, 'user_id') == user_id).filter(*filters).filter(*mods).order_by(getattr(table, 'date'))
+        return [a[0] for a in session.execute(stmt)]
+    return [a._mapping for a in session.execute(stmt).all()]
 
 if __name__ == '__main__':
     from ORM import ORM

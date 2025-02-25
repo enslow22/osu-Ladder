@@ -1,7 +1,13 @@
+"""
+Does stuff relating to Score Objects
+Includes:
+    - Fetching Scores based on filters
+    - Calculating Metrics for users based on their Scores (weighted_sum_pp, group by count scores, etc.)
+"""
+
 from collections.abc import Sequence
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import Session
-
 from database.models import Beatmap, Score, BeatmapSet
 from database.util import parse_user_filters
 from util import get_mode_table
@@ -134,7 +140,7 @@ async def get_top_n(session: Session, user_id: int, mode: str or int, metric: st
     user_filter = parse_user_filters(mode, user_id)
 
     if not unique:
-        return await get_scores(session, mode, 'pp', desc, limit, mod_filters, user_filter + score_filters, beatmap_filters, beatmapset_filters)
+        return await get_scores(session, mode, metric, desc, limit, mod_filters, user_filter + score_filters, beatmap_filters, beatmapset_filters)
     else:
         # Select the highest pp play for each beatmap
         subq = select(score_type_table.beatmap_id, func.max(getattr(score_type_table, metric)).label('max_metric')).filter(*user_filter).filter(*mod_filters).filter(*score_filters).group_by(score_type_table.beatmap_id).subquery()
@@ -167,6 +173,17 @@ def format_scores_list(scores: List[Score] or Score, metric: str = 'lazer_score'
     for score in scores:
         print(score.to_dict())
     return scores
+
+def weighted_pp_sum(scores: List[Score]) -> int:
+    """
+    Returns profile pp for the top 100 scores.
+    """
+    n = 100
+    total = 416.666666
+    scores = scores if n > len(scores) else scores[:n]
+    for i, score in enumerate(scores):
+        total += score.pp * 0.95**(i-1)
+    return total
 
 if __name__ == '__main__':
 

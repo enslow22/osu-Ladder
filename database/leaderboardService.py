@@ -1,37 +1,13 @@
+import datetime
+
 from sqlalchemy import select, and_, func, Date
 from sqlalchemy.orm import Session
-from database.util import get_mode_table
+from database.util import get_mode_table, parse_score_filters, parse_beatmap_filters, parse_beatmapset_filters, parse_user_filters, parse_mod_filters
 from typing import List, Any
 from ossapi import Score
-from database.models import RegisteredUser
+from database.models import RegisteredUser, Leaderboard, LeaderboardSpot, MetricEnum
+from database.scoreService import get_scores, count_scores, get_top_n, weighted_pp_sum
 
-def get_beatmap_leaderboard(session: Session, users: List[int], beatmap_id: int, mode: str or int, filters: tuple = (), mods: tuple = (), metric: str = 'lazer_score', unique: bool = True) -> List[Score]:
-    """
-    Given a beatmap, fetch the beatmap leaderboard. Can also supply a group of users.
-    """
-    if not isinstance(filters, tuple):
-        filters = tuple(filters)
-    if not isinstance(mods, tuple):
-        mods = tuple(mods)
-
-    table = get_mode_table(mode)
-    stmt = select(table).filter(
-        and_(
-            getattr(table, 'beatmap_id') == beatmap_id,
-            getattr(table, 'user_id').in_(users)
-        )
-    ).filter(*filters).filter(*mods).order_by(getattr(table, metric).desc())
-    lb = list(session.scalars(stmt).all())
-
-    if unique:
-        # Go through and check that there's only one score per user
-        users_found = []
-        for i, score in enumerate(lb):
-            if score.user_id in users_found:
-                lb[i] = None
-                continue
-            users_found.append(score.user_id)
-    return [x for x in lb if x is not None]
 
 # Probably shouldn't have this as a route, but we will see.
 def pp_record_history(session: Session, users: List[int], mode: str or int) -> List[dict[str, Any]]:
@@ -66,34 +42,46 @@ def pp_record_history(session: Session, users: List[int], mode: str or int) -> L
         })
     return pp_history
 
-def top_play_per_day(session: Session, user_id: int, mode: str or int, filters: tuple = (), mods: tuple = (), minimal: bool = True):
+async def recalculate_user(session: Session, user_id: int, leaderboard_id: int = None, leaderboard_name: str = None):
     """
-    Given a user, fetch their highest pp play for each day.
+    Given a leaderboard and a user, update LeaderboardSpot.value
     """
-    if not isinstance(filters, tuple):
-        filters = tuple(filters)
-    if not isinstance(mods, tuple):
-        mods = tuple(mods)
+    if not leaderboard_id and not leaderboard_name:
+        return False
 
-    table = get_mode_table(mode)
+    if leaderboard_id:
+        stmt = select(Leaderboard).filter(Leaderboard.leaderboard_id == leaderboard_id)
+    else:
+        stmt = select(Leaderboard).filter(Leaderboard.name == leaderboard_name)
+    leaderboard = session.scalars(stmt).one()
 
-    # I think this method messes up very slightly, but only if a person sets the exact same play on the exact same day.
-    stmt = (select(getattr(table, 'date').cast(Date).label('date'), func.max(getattr(table, 'pp')).label('max_pp'))
-            .filter(getattr(table, 'user_id') == user_id).filter(getattr(table, 'pp').isnot(None))
-            .filter(*filters).filter(*mods)
-            .group_by(getattr(table, 'date').cast(Date))
-            .order_by(getattr(table, 'date').cast(Date)))
+    leaderboard_spot = list(filter(lambda x: x.user_id == user_id, leaderboard.leaderboard_spots))[0]
 
-    if not minimal:
-        subq = stmt.subquery()
-        stmt = select(table).join(subq, (getattr(table, 'pp') == subq.c.max_pp) & (getattr(table, 'date').cast(Date) == subq.c.date) ).filter(getattr(table, 'user_id') == user_id).filter(*filters).filter(*mods).order_by(getattr(table, 'date'))
-        return [a[0] for a in session.execute(stmt)]
-    return [a._mapping for a in session.execute(stmt).all()]
+    mode = leaderboard.mode.name
+    mod_filters = parse_mod_filters(mode, leaderboard.mod_filters)
+    score_filters = parse_score_filters(mode, leaderboard.score_filters)
+    beatmap_filters = parse_beatmap_filters(leaderboard.beatmap_filters)
+    beatmapset_filters = parse_beatmapset_filters(leaderboard.beatmapset_filters)
+
+    new_value = 0
+
+    if leaderboard.metric.name == MetricEnum.weighted_pp.name:
+        scores_list = await get_top_n(session, user_id, mode, 'pp', True, 100, True, mod_filters, score_filters, beatmap_filters, beatmapset_filters)
+        new_value = weighted_pp_sum(list(scores_list))
+        leaderboard_spot.value = new_value
+    elif leaderboard.metric.name == MetricEnum.count_unique_beatmaps:
+        user_filter = parse_user_filters(mode, leaderboard_spot.user_id)
+        new_value = count_scores(session, mode, 'beatmap_id', True, 1, mod_filters, score_filters+user_filter, beatmap_filters, beatmapset_filters)
+        leaderboard_spot.value = new_value
+    leaderboard_spot.last_updated = datetime.datetime.now()
+    session.commit()
+    return new_value
 
 if __name__ == "__main__":
     from database.ORM import ORM
     from database.util import parse_mod_filters
     orm = ORM()
-    mods1 = parse_mod_filters(0, '+HDDTHR')
-    b = top_play_per_day(orm.sessionmaker(), 20085097, 0, mods=mods1, minimal=True)
-    print(b[0]._mapping)
+    import asyncio
+    session = orm.sessionmaker()
+
+    asyncio.run(recalculate_user(session, 10651409, 1))

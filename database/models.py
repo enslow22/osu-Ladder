@@ -51,6 +51,10 @@ class PlaymodeEnum(enum.Enum):
     fruits = 'fruits'
     mania = 'mania'
 
+class MetricEnum(enum.Enum):
+    weighted_pp = 'weighted_pp'
+    count_unique_beatmaps = 'count_unique_beatmaps'
+
 class Score(AbstractConcreteBase, Base):
     strict_attrs = True
     score_id = Column(Integer, primary_key=True)
@@ -357,3 +361,48 @@ class Beatmap(Base):
         self.stars = info.difficulty_rating
         self.max_combo = info.max_combo
         self.bpm = info.bpm
+
+class Leaderboard(Base):
+    __tablename__ = 'leaderboards'
+
+    leaderboard_id = Column(Integer, primary_key=True)
+    name = Column(String)
+    mode = Column(Enum(PlaymodeEnum))
+    description = Column(String)
+    mod_filters = Column(String)
+    score_filters = Column(String)
+    beatmap_filters = Column(String)
+    beatmapset_filters = Column(String)
+    metric = Column(Enum(MetricEnum))
+    """
+    Comments about metric.
+    A metric is a group by statement which converts a list of Score objects into a number.
+    Some examples:
+        - GROUP BY COUNT DISTINCT beatmap_id    (The number of plays on different beatmaps)
+        - GROUP BY WEIGHTED_SUM pp              (The weighted sum of all pp plays, the pp algorithm)
+        - who knows maybe someone can tell me.
+    """
+    unique = Column(Boolean)
+    private = Column(Boolean)
+
+    @declared_attr
+    def creator_id(cls):
+        return Column(Integer, ForeignKey('registered_users.user_id'))
+
+    leaderboard_spots: Mapped[List["LeaderboardSpot"]] = relationship()
+
+class LeaderboardSpot(Base):
+    __tablename__ = 'leaderboard_spots'
+
+    @declared_attr
+    def user_id(cls):
+        return Column(Integer, ForeignKey('registered_users.user_id'), primary_key=True)
+
+    @declared_attr
+    def leaderboard_id(cls):
+        return Column(Integer, ForeignKey('leaderboards.leaderboard_id'), primary_key=True)
+
+    value = Column(Float)
+    last_updated = Column(DateTime)
+
+    leaderboard: Mapped["Leaderboard"] = relationship(back_populates="leaderboard_spots")
