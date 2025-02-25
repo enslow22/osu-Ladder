@@ -43,7 +43,7 @@ async def run():
             await process_scores(websocket)
 
 def get_all_users(session):
-    stmt = select(models.RegisteredUser.user_id)
+    stmt = select(RegisteredUser.user_id)
     user_ids = [user_id for user_id in session.execute(stmt).scalars().all()]
     session.close()
     print("Tracking scores for %s users" % str(len(user_ids)))
@@ -52,7 +52,7 @@ def get_all_users(session):
 async def process_scores(websocket):
 
     try:
-        orm = ORM.ORM()
+        orm = ORM()
         user_ids = get_all_users(orm.sessionmaker())
         import dotenv
         import time
@@ -69,7 +69,7 @@ async def process_scores(websocket):
                 print(f'Found a score for {score["user_id"]}')
 
                 new_score = ossapi._instantiate_type(Score, score)
-                scoreService.insert_scores(session, [new_score])
+                insert_scores(session, [new_score])
                 session.close()
 
             # Update registered users every minute.
@@ -88,10 +88,11 @@ if __name__ == "__main__":
     import sys
     import os
 
-    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'database')))
+    #sys.path.append(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'database')))
+    sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
-    import ORM
-    import scoreService
-    import models
-
+    from database.ORM import ORM
+    from database.scoreService import insert_scores
+    from database.models import RegisteredUser
+    print(';')
     asyncio.run(run())
