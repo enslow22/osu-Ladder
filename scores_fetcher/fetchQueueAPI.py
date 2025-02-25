@@ -29,9 +29,6 @@ def enqueue_user(user_id: int, get_non_converts: bool, catch_converts: bool, ove
             return {'message': 'You are already in the queue.'}
     if user.user_id in user_queue:
         return {'message': 'You are already in the queue.'}
-    auth_client = OsuApiAuthService(user.user_id, user.access_token)
-    if not auth_client.auth_client_works():
-        return {'message': 'Auth credentials out of date, try relogging'}
     if not get_non_converts and not catch_converts:
         return {'message': 'You must queue for something!'}
 
