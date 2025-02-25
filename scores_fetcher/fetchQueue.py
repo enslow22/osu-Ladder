@@ -15,10 +15,11 @@ NUM_THREADS = int(os.getenv('NUM_THREADS'))
 
 class TaskQueue:
 
-    def __init__(self, sessionmaker):
+    def __init__(self, sessionmaker, bypass_user_auth=False):
         self.sessionmaker = sessionmaker
         self.q = queue.PriorityQueue()
         self.pool = multiprocessing.pool.ThreadPool(processes=NUM_THREADS)
+        self.bypass_user_auth = bypass_user_auth
         self.current = []
         # {'user_id': user.user_id,
         #   'username': user.username,
@@ -73,7 +74,7 @@ class TaskQueue:
                     raise Exception
 
             # Try to connect to auth client
-            auth_osu_api = OsuApiAuthService(user.user_id, user.access_token)
+            auth_osu_api = OsuApiAuthService(user.user_id, user.access_token, override=self.bypass_user_auth)
             print('%s accessed the osu api successfully' % user.username)
 
             # Get most played
