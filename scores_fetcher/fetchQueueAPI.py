@@ -68,7 +68,7 @@ def initial_fetch_user(token: Annotated[RegisteredUserCompact, Depends(verify_ad
     """
     Adds any user to the fetch queue
     """
-    return enqueue_user(user_id, non_converts, catch_converts, )
+    return enqueue_user(user_id, non_converts, catch_converts, override_api_auth=override_api_auth)
 
 @fetchapp.post("/remove_from_queue", status_code=status.HTTP_202_ACCEPTED)
 def remove_from_queue(token: Annotated[RegisteredUserCompact, Depends(verify_admin)], user_id: int):
