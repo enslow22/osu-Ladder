@@ -94,5 +94,4 @@ if __name__ == "__main__":
     from database.ORM import ORM
     from database.scoreService import insert_scores
     from database.models import RegisteredUser
-    print(';')
     asyncio.run(run())
