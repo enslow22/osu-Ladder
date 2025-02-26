@@ -155,18 +155,13 @@ async def get_database_summary():
     Returns the number of scores in the database
     """
     session = orm.sessionmaker()
-    num_osu_scores = await count_scores(session, mode='osu')
-    num_taiko_scores = await count_scores(session, mode='taiko')
-    num_catch_scores = await count_scores(session, mode='fruits')
-    num_mania_scores = await count_scores(session, mode='mania')
-    num_registered_users = count_users(session)
+    data = {'num_users': count_users(session)}
+
+    for mode in ['osu', 'taiko', 'fruits', 'mania']:
+        data[mode] = await count_scores(session, mode=mode)
     session.close()
 
-    return {'Total Standard Scores': num_osu_scores,
-            'Total Taiko Scores': num_taiko_scores,
-            'Total Catch Scores': num_catch_scores,
-            'Total Mania Scores': num_mania_scores,
-            'Total Registered Users': num_registered_users,}
+    return data
 
 @app.get('/user_summary')
 async def get_user_summary():
