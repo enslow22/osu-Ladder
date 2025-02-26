@@ -138,7 +138,7 @@ def get_fetch_queue():
 @app.get('/recent_summary', status_code=status.HTTP_200_OK)
 async def get_recent_summary(days: int = 1):
     """
-    Returns the number of scores submitted in each mode for the past 7 days
+    Returns the number of scores fetched in each mode for the past n days. (max 7 days)
     """
     days = min(7, days)
     session = orm.sessionmaker()
