@@ -146,12 +146,13 @@ async def get_recent_summary(days: int = 1):
 
     one_day = datetime.timedelta(days=1)
     today = datetime.date.today()
-    data = {}
+    data = []
     for day in range(days):
-        data[str(day)] = {'date': (today - day*one_day).strftime('%Y-%m-%d')}
+        row = {'date': (today - day*one_day).strftime('%Y-%m-%d')}
         filter_string = f'date>={(today - day*one_day).strftime('%Y-%m-%d')} date<={(today - (day-1)*one_day).strftime('%Y-%m-%d')}'
         for mode in ['osu', 'taiko', 'fruits', 'mania']:
-            data[str(day)][mode] = await count_scores(session, mode, score_filters=parse_score_filters(mode, filter_string))
+            row[mode] = await count_scores(session, mode, score_filters=parse_score_filters(mode, filter_string))
+        data.append(row)
     session.close()
     return data
 
