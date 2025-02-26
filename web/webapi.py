@@ -135,17 +135,23 @@ def get_fetch_queue():
     """
     return {"message": "Moved to /fetch/fetch_queue"}
 
-@app.get('/today_summary', status_code=status.HTTP_200_OK)
-async def get_today_summary():
+@app.get('/recent_summary', status_code=status.HTTP_200_OK)
+async def get_recent_summary(days: int = 1):
     """
-    Returns the number of scores submitted in each mode for today
+    Returns the number of scores submitted in each mode for the past 7 days
     """
+    days = min(7, days)
     session = orm.sessionmaker()
     import datetime
-    filter_string = 'date>='+datetime.date.today().strftime('%Y-%m-%d')
+
+    one_day = datetime.timedelta(days=1)
+    today = datetime.date.today()
     data = {}
-    for mode in ['osu', 'taiko', 'fruits', 'mania']:
-        data[mode] = await count_scores(session, mode, score_filters=parse_score_filters(mode, filter_string))
+    for day in range(days):
+        data[str(day)] = {'date': (today - day*one_day).strftime('%Y-%m-%d')}
+        filter_string = f'date>={(today - day*one_day).strftime('%Y-%m-%d')} date<={(today - (day-1)*one_day).strftime('%Y-%m-%d')}'
+        for mode in ['osu', 'taiko', 'fruits', 'mania']:
+            data[str(day)][mode] = await count_scores(session, mode, score_filters=parse_score_filters(mode, filter_string))
     session.close()
     return data
 
