@@ -4,7 +4,6 @@ from sqlalchemy import select
 from database.ORM import ORM
 import database.userService as userService
 from database.models import RegisteredUser, LeaderboardSpot
-from database.tagService import add_tags
 from database.leaderboardService import recalculate_user
 
 router = APIRouter()
@@ -28,11 +27,6 @@ async def initial_fetch_user(user_id: int, catch_converts: bool | None):
     Moved to /fetch/initial_fetch_user
     """
     return {"message": "Moved to /fetch/initial_fetch_user"}
-
-@router.post("/add_tags_to_users/", status_code=status.HTTP_202_ACCEPTED)
-async def add_tags_to_users(user_ids: Annotated[list[int] | None, Query()], tag: str):
-    if not add_tags(orm.sessionmaker(), user_ids, tag):
-        return {"message": "An error occurred. Make sure all users are registered."}
 
 @router.get("/test", status_code=status.HTTP_200_OK)
 def test():

@@ -7,9 +7,7 @@ from database.ORM import ORM
 from database.models import RegisteredUser
 from database.util import parse_score_filters, parse_mod_filters, parse_beatmap_filters, parse_beatmapset_filters, \
     parse_user_filters
-from database.userService import get_profile_pp
-from database.tagService import get_ids_from_tag
-from database.leaderboardService import get_beatmap_leaderboard, top_play_per_day
+from database.userService import get_profile_pp, top_play_per_day
 from database.scoreService import get_top_n, get_scores, compact_scores_list
 from web.apiModels import Mode, Metric, ScoreGroupBy, ScoreReturnFormat
 
@@ -141,27 +139,6 @@ async def profile_pp(user_id: int, mode: Mode = 'osu', metric: Metric = 'pp', de
             'unique': unique,
             'total pp': total_pp,
             'top plays': compact_scores_list(scores, 'pp')}
-
-@router.get('/group_leaderboard', status_code=status.HTTP_200_OK)
-async def get_group_leaderboard(beatmap_id: int, users: Annotated[list[int] | None, Query()] = None, group_tag: str or int = None, mode: Mode = 'osu', filter_string: Optional[str] = None, mod_string: Optional[str] = None,  metric: Annotated[Metric, Query()] = 'pp', desc: bool = True, unique: bool = True):
-    """
-    Given a beatmap_id and a list of users (or a Tag), construct a leaderboard
-    - **unique:** Return only one score per user
-    """
-
-    filters = parse_score_filters(mode, filter_string)
-    mods = parse_mod_filters(mode, mod_string)
-    session = orm.sessionmaker()
-    if users is None:
-        if group_tag is None:
-            return {"message": "Supply a group tag or list of users!"}
-        users = get_ids_from_tag(session, group_tag)
-        if len(users) == 0:
-            return {"message": "There are no registered users in %s" % group_tag}
-
-    scores = get_beatmap_leaderboard(session, users, beatmap_id, mode, filters, mods, metric, unique)
-    session.close()
-    return {"group": str(group_tag), "users": users, "mode": mode.name, "filters": filter_string, "mods": mod_string, "metric": metric.name, "scores": scores}
 
 @router.get('/score_history', status_code=status.HTTP_200_OK)
 async def get_score_history(user_id: int, mode: Mode = 'osu', filter_string: Optional[str] = None, mod_string: Optional[str] = None, minimal: bool = True):

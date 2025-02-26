@@ -9,7 +9,6 @@ from routers import admin, auth, stats
 from dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 from database.ORM import ORM
 from database.userService import get_user_from_apikey, register_user, count_users, set_user_authentication
-from database.tagService import count_tags
 from database.scoreService import count_scores
 from database.util import parse_score_filters
 import dotenv
@@ -161,16 +160,21 @@ async def get_database_summary():
     num_catch_scores = await count_scores(session, mode='fruits')
     num_mania_scores = await count_scores(session, mode='mania')
     num_registered_users = count_users(session)
-    num_tags, num_users_tagged = count_tags(session)
     session.close()
 
     return {'Total Standard Scores': num_osu_scores,
             'Total Taiko Scores': num_taiko_scores,
             'Total Catch Scores': num_catch_scores,
             'Total Mania Scores': num_mania_scores,
-            'Total Registered Users': num_registered_users,
-            'Total Tags': num_tags,
-            'Total Tagged Players': num_users_tagged,}
+            'Total Registered Users': num_registered_users,}
+
+@app.get('/user_summary')
+async def get_user_summary():
+    """
+    SELECT r.username, r.last_updated, s.user_id, COUNT(*) FROM all_modes s  LEFT JOIN registered_users r on r.user_id = s.user_id GROUP BY s.user_id
+    :return:
+    """
+    pass
 
 app.include_router(
     auth.router,
