@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from database.util import get_mode_table, parse_score_filters, parse_beatmap_filters, parse_beatmapset_filters, parse_user_filters, parse_mod_filters
 from typing import List, Any
 from ossapi import Score
-from database.models import RegisteredUser, Leaderboard, LeaderboardSpot, MetricEnum
+from database.models import RegisteredUser, Leaderboard, LeaderboardSpot, LeaderboardMetricEnum
 from database.scoreService import get_scores, count_scores, get_top_n, weighted_pp_sum
 
 
@@ -65,11 +65,11 @@ async def recalculate_user(session: Session, user_id: int, leaderboard_id: int =
 
     new_value = 0
 
-    if leaderboard.metric.name == MetricEnum.weighted_pp.name:
+    if leaderboard.metric.name == LeaderboardMetricEnum.weighted_pp.name:
         scores_list = await get_top_n(session, user_id, mode, 'pp', True, 100, True, mod_filters, score_filters, beatmap_filters, beatmapset_filters)
         new_value = weighted_pp_sum(list(scores_list))
         leaderboard_spot.value = new_value
-    elif leaderboard.metric.name == MetricEnum.count_unique_beatmaps:
+    elif leaderboard.metric.name == LeaderboardMetricEnum.count_unique_beatmaps:
         user_filter = parse_user_filters(mode, leaderboard_spot.user_id)
         new_value = count_scores(session, mode, 'beatmap_id', True, 1, mod_filters, score_filters+user_filter, beatmap_filters, beatmapset_filters)
         leaderboard_spot.value = new_value

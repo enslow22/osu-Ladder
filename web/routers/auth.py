@@ -1,5 +1,4 @@
 import datetime
-
 import fastapi.exceptions
 import sqlalchemy.exc
 from fastapi import APIRouter, Depends, status, Query
@@ -9,7 +8,7 @@ from typing import Optional, Annotated
 from web.dependencies import RegisteredUserCompact, verify_token
 from sqlalchemy import select, delete, func, and_
 from database.ORM import ORM
-from database.models import RegisteredUser, Leaderboard, LeaderboardSpot
+from database.models import RegisteredUser, Leaderboard, LeaderboardSpot, LeaderboardMetricEnum
 from database.scoreService import get_user_scores
 from database.util import parse_score_filters, parse_mod_filters
 from database.leaderboardService import recalculate_user
@@ -37,18 +36,6 @@ def get_user(user_id: int):
     session = orm.sessionmaker()
     return {"user": session.get(RegisteredUser, user_id)}
 
-@router.get('/scores', tags=['auth'])
-def get_score(beatmap_id: int, user_id: int, mode: Mode = 'osu', filters: Optional[str] = None, mods: Optional[str] = None, metric: str = 'pp'):
-    """
-    Fetches a user's scores on a beatmap
-    """
-    filters = parse_score_filters(mode, filters)
-    mods = parse_mod_filters(mode, filters)
-    session = orm.sessionmaker()
-    a = get_user_scores(session, beatmap_id, user_id, mode, filters, mods, metric)
-    session.close()
-    return {"scores": a}
-
 @router.post("/initial_fetch_self", status_code=status.HTTP_202_ACCEPTED)
 def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)], catch_converts: Annotated[ bool , Query(description='Fetch ctb converts?')] = False):
     """
@@ -59,7 +46,7 @@ def initial_fetch(token: Annotated[RegisteredUserCompact, Depends(verify_token)]
 @router.post("/create_leaderboard", status_code=status.HTTP_201_CREATED)
 def create_leaderboard(token: Annotated[RegisteredUserCompact, Depends(verify_token)], leaderboard_name: str,
                        description: str,
-                       metric: str,
+                       metric: LeaderboardMetricEnum,
                        unique: bool = True,
                        private: bool = True,
                        mode: Mode = "osu",

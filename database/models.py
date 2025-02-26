@@ -51,7 +51,7 @@ class PlaymodeEnum(enum.Enum):
     fruits = 'fruits'
     mania = 'mania'
 
-class MetricEnum(enum.Enum):
+class LeaderboardMetricEnum(enum.Enum):
     weighted_pp = 'weighted_pp'
     count_unique_beatmaps = 'count_unique_beatmaps'
 
@@ -245,22 +245,6 @@ class RegisteredUser(Base):
         self.avatar_url = user_info.avatar_url
         self.playmode = user_info.playmode
 
-class RegisteredUserTag(Base):
-    __tablename__ = 'registered_user_tags'
-    user_id = Column(Integer, primary_key=True)
-    tag = Column(String, primary_key=True)
-    mod = Column(Boolean)
-    date_added = Column(DateTime)
-
-class Tags(Base):
-    __tablename__ = 'group_tags'
-
-    tag_id = Column(Integer, primary_key=True, autoincrement=True)
-    tag_name = Column(String, primary_key=True)
-    tag_owner = Column(Integer, ForeignKey('registered_users.user_id'))
-    date_created = Column(DateTime)
-
-
 # Write a function to add a beatmapset into the database. (This will be a helper function that should be run uhhh idk when)
 # The easiest thing to do is just run it every hour or something, and then have a fallback on the front end for beatmaps not found
 #   This is the best idea I think. We can run a sql query that right joins the scores and beatmaps tables. If the length
@@ -373,7 +357,7 @@ class Leaderboard(Base):
     score_filters = Column(String)
     beatmap_filters = Column(String)
     beatmapset_filters = Column(String)
-    metric = Column(Enum(MetricEnum))
+    metric = Column(Enum(LeaderboardMetricEnum))
     """
     Comments about metric.
     A metric is a group by statement which converts a list of Score objects into a number.
