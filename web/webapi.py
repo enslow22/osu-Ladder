@@ -151,15 +151,15 @@ async def get_recent_scores(n: int=10):
     mania_scores = session.scalars(select(ManiaScore).order_by(ManiaScore.score_id.desc()).limit(n)).all()
     scores_list = osu_scores+taiko_scores+catch_scores+mania_scores
 
-    try:
-        scores_list = [x.beatmap.to_dict() | x.to_dict() | {"mode": x.get_mode()} for x in scores_list]
-    except AttributeError:
-        import findMissingBeatmaps
-        importlib.reload(findMissingBeatmaps)
-        scores_list = [x.beatmapset.to_dict() | x.beatmap.to_dict() | x.to_dict() | {"mode": x.get_mode()} for x in scores_list]
+    return_list = []
+    for score in scores_list:
+        try:
+            return_list.append(score.beatmap.beatmapset.to_dict() | score.beatmap.to_dict() | score.to_dict() | {"mode": score.get_mode(), "username": score.user.username, "avatar_url": score.user.avatar_url})
+        except:
+            continue
 
-    scores_list.sort(key=lambda x: x['date'], reverse=True)
-    return scores_list[:n]
+    return_list.sort(key=lambda x: x['date'], reverse=True)
+    return return_list[:n]
 
 @app.get('/recent_summary', status_code=status.HTTP_200_OK)
 async def get_recent_summary(days: int = 1):
