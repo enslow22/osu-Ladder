@@ -84,6 +84,10 @@ class Score(AbstractConcreteBase, Base):
         return Column(Integer, ForeignKey('registered_users.user_id'))
 
     @declared_attr
+    def user(cls) -> Mapped["RegisteredUser"]:
+        return relationship("RegisteredUser")
+
+    @declared_attr
     def beatmap(cls) -> Mapped["Beatmap"]:
         return relationship("Beatmap")
 
