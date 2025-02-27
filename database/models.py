@@ -109,6 +109,16 @@ class Score(AbstractConcreteBase, Base):
         self.pp = info.pp
         self.replay = info.replay
 
+    def get_mode(self):
+        if isinstance(self, OsuScore):
+            return 'osu'
+        if isinstance(self, TaikoScore):
+            return 'taiko'
+        if isinstance(self, CatchScore):
+            return 'fruits'
+        if isinstance(self, ManiaScore):
+            return 'mania'
+
 class OsuScore(Score):
     __tablename__ = 'registered_scores_osu'
 
