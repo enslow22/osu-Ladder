@@ -187,7 +187,12 @@ async def get_database_summary():
     Returns the number of scores in the database
     """
     session = orm.sessionmaker()
-    data = {'num_users': count_users(session)}
+    data = {'num_users': session.query(func.count(RegisteredUser)).scalar(),
+            'num_beatmapsets': session.query(func.count(BeatmapSet)).scalar(),
+            'num_beatmaps': session.query(func.count(Beatmap)).scalar(),
+            'num_leaderboards': session.query(func.count(Leaderboard.leaderboard_id)).scalar(),
+            'num_leaderboardspots': session.query(func.count(LeaderboardSpot)).scalar(),
+            }
 
     for mode in ['osu', 'taiko', 'fruits', 'mania']:
         data[mode] = await count_scores(session, mode=mode)
