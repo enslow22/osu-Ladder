@@ -58,7 +58,7 @@ def create_leaderboard(token: Annotated[RegisteredUserCompact, Depends(verify_to
     try:
         new_leaderboard = Leaderboard()
         new_leaderboard.name = leaderboard_name
-        new_leaderboard.creator_id = token.user_id
+        new_leaderboard.creator_id = token["user_id"]
         new_leaderboard.mode = mode
         new_leaderboard.metric = metric
         new_leaderboard.unique = unique
@@ -70,7 +70,8 @@ def create_leaderboard(token: Annotated[RegisteredUserCompact, Depends(verify_to
         new_leaderboard.beatmapset_filters = beatmapset_filters
         session.add(new_leaderboard)
         session.commit()
-    except:
+    except Exception as e:
+        print(e)
         return {"message": f"{leaderboard_name} was not created due to an issue. Maybe a leaderboard with that name already exists?"}
     session.close()
     return {"message": f"{leaderboard_name} has been successfully created"}
