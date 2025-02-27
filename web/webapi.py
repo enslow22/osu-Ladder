@@ -1,6 +1,5 @@
 import datetime
-import time
-import timeit
+import importlib
 
 from fastapi import FastAPI, status, Request, Depends
 from fastapi.templating import Jinja2Templates
@@ -145,7 +144,6 @@ def get_fetch_queue():
 @app.get('/recent_scores', status_code=status.HTTP_200_OK)
 async def get_recent_scores(n: int=10):
     n = min(n, 10)
-    now = time.time()
     session = orm.sessionmaker()
     osu_scores = session.scalars(select(OsuScore).order_by(OsuScore.score_id.desc()).limit(n)).all()
     taiko_scores = session.scalars(select(TaikoScore).order_by(TaikoScore.score_id.desc()).limit(n)).all()
@@ -153,11 +151,14 @@ async def get_recent_scores(n: int=10):
     mania_scores = session.scalars(select(ManiaScore).order_by(ManiaScore.score_id.desc()).limit(n)).all()
     scores_list = osu_scores+taiko_scores+catch_scores+mania_scores
 
-    scores_list = [x.to_dict() | {"mode": x.get_mode()} for x in scores_list]
+    try:
+        scores_list = [x.beatmap.to_dict() | x.to_dict() | {"mode": x.get_mode()} for x in scores_list]
+    except AttributeError:
+        import findMissingBeatmaps
+        importlib.reload(findMissingBeatmaps)
+        scores_list = [x.beatmapset.to_dict() | x.beatmap.to_dict() | x.to_dict() | {"mode": x.get_mode()} for x in scores_list]
 
     scores_list.sort(key=lambda x: x['date'], reverse=True)
-    later = time.time()
-    print(later - now)
     return scores_list[:n]
 
 @app.get('/recent_summary', status_code=status.HTTP_200_OK)
