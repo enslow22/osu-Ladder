@@ -142,8 +142,8 @@ def get_fetch_queue():
     return {"message": "Moved to /fetch/fetch_queue"}
 
 @app.get('/recent_scores', status_code=status.HTTP_200_OK)
-async def get_recent_scores(n: int=10):
-    n = min(n, 10)
+async def get_recent_scores(n: int=15):
+    n = min(n, 15)
     session = orm.sessionmaker()
     osu_scores = session.scalars(select(OsuScore).order_by(OsuScore.score_id.desc()).limit(n)).all()
     taiko_scores = session.scalars(select(TaikoScore).order_by(TaikoScore.score_id.desc()).limit(n)).all()
