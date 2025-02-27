@@ -1,10 +1,17 @@
 import datetime
+import time
+import timeit
+
 from fastapi import FastAPI, status, Request, Depends
 from fastapi.templating import Jinja2Templates
 from starlette.responses import RedirectResponse, FileResponse
+from sqlalchemy import select, func
 import requests
 from hashlib import sha256
 from starlette.staticfiles import StaticFiles
+
+from database.models import Leaderboard, LeaderboardSpot, RegisteredUser, BeatmapSet, Beatmap, OsuScore, TaikoScore, \
+    CatchScore, ManiaScore
 from routers import admin, auth, stats
 from dependencies import verify_token, verify_admin, create_access_token, RegisteredUserCompact, has_token
 from database.ORM import ORM
@@ -134,6 +141,24 @@ def get_fetch_queue():
     Moved to /fetch/fetch_queue
     """
     return {"message": "Moved to /fetch/fetch_queue"}
+
+@app.get('/recent_scores', status_code=status.HTTP_200_OK)
+async def get_recent_scores(n: int=10):
+    n = min(n, 10)
+    now = time.time()
+    session = orm.sessionmaker()
+    osu_scores = session.scalars(select(OsuScore).order_by(OsuScore.score_id.desc()).limit(n)).all()
+    taiko_scores = session.scalars(select(TaikoScore).order_by(TaikoScore.score_id.desc()).limit(n)).all()
+    catch_scores = session.scalars(select(CatchScore).order_by(CatchScore.score_id.desc()).limit(n)).all()
+    mania_scores = session.scalars(select(ManiaScore).order_by(ManiaScore.score_id.desc()).limit(n)).all()
+    scores_list = osu_scores+taiko_scores+catch_scores+mania_scores
+
+    scores_list = [x.to_dict() | {"mode": x.get_mode()} for x in scores_list]
+
+    scores_list.sort(key=lambda x: x['date'], reverse=True)
+    later = time.time()
+    print(later - now)
+    return scores_list[:n]
 
 @app.get('/recent_summary', status_code=status.HTTP_200_OK)
 async def get_recent_summary(days: int = 1):
