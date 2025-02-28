@@ -4,7 +4,7 @@ import importlib
 from fastapi import FastAPI, status, Request, Depends
 from fastapi.templating import Jinja2Templates
 from starlette.responses import RedirectResponse, FileResponse
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 import requests
 from hashlib import sha256
 from starlette.staticfiles import StaticFiles
@@ -200,13 +200,42 @@ async def get_database_summary():
 
     return data
 
-@app.get('/user_summary')
+@app.get('/user_summary', status_code=status.HTTP_200_OK)
 async def get_user_summary():
     """
     SELECT r.username, r.last_updated, s.user_id, COUNT(*) FROM all_modes s  LEFT JOIN registered_users r on r.user_id = s.user_id GROUP BY s.user_id
     :return:
     """
     pass
+
+@app.get("/get_leaderboards", status_code=status.HTTP_200_OK)
+async def get_leaderboards():
+    session = orm.sessionmaker()
+    stmt = select(Leaderboard)
+    leaderboards = session.scalars(stmt).all()
+    session.close()
+
+    return leaderboards
+
+@app.get("/get_leaderboard_info", status_code=status.HTTP_200_OK)
+async def get_leaderboard_info(leaderboard_id: int = None, leaderboard_name: str = None):
+    """
+    Gets a leaderboard and all the tracked players on it. Only requires one identifier, not both
+    """
+    session = orm.sessionmaker()
+    stmt = select(Leaderboard).filter(or_(
+        Leaderboard.leaderboard_id == leaderboard_id,
+        Leaderboard.name == leaderboard_name
+    ))
+    try:
+        leaderboard = session.scalars(stmt).one()
+        stmt = select(LeaderboardSpot).filter(LeaderboardSpot.leaderboard_id == leaderboard_id).order_by(LeaderboardSpot.value.desc())
+        leaderboard_spots = session.scalars(stmt).all()
+
+        return leaderboard.to_dict() | {"users": leaderboard_spots}
+    except:
+        identifier = leaderboard_name if leaderboard_name is not None else leaderboard_id
+        return {"message": f"Something went wrong, are you sure the leaderboard {identifier} exists?"}
 
 app.include_router(
     auth.router,
