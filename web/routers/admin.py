@@ -43,3 +43,9 @@ async def update_players(user_ids: Annotated[list[int] | None, Query()]):
         for leaderboard_spot in leaderboard_spots:
             await recalculate_user(session, user_id, leaderboard_spot.leaderboard_id)
     return {"message": "Success"}
+
+@router.post("/update_all_players")
+async def update_all_players():
+    session = orm.sessionmaker()
+    all_ids = session.execute(select(LeaderboardSpot.user_id.distinct())).scalars().all()
+    return await update_players(all_ids)
