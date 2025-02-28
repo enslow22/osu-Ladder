@@ -246,6 +246,9 @@ class RegisteredUser(Base):
     refresh_token = Column(String)
     expires_at = Column(DateTime)
 
+    leaderboard_spots: Mapped[List["LeaderboardSpot"]] = relationship()
+    owned_leaderboards: Mapped[List["Leaderboard"]] = relationship()
+
     # If given a User Object (from the osu database wrapper), it will populate the row with the correct info
     def __init__(self, user_info):
         self.set_all(user_info)
@@ -387,6 +390,7 @@ class Leaderboard(Base):
     def creator_id(cls):
         return Column(Integer, ForeignKey('registered_users.user_id'))
 
+    creator: Mapped["RegisteredUser"] = relationship(back_populates="owned_leaderboards")
     leaderboard_spots: Mapped[List["LeaderboardSpot"]] = relationship()
 
 class LeaderboardSpot(Base):
@@ -404,3 +408,4 @@ class LeaderboardSpot(Base):
     last_updated = Column(DateTime)
 
     leaderboard: Mapped["Leaderboard"] = relationship(back_populates="leaderboard_spots")
+    user: Mapped["RegisteredUser"] = relationship(back_populates="leaderboard_spots")
