@@ -123,7 +123,19 @@ async def add_user_to_leaderboard(token: Annotated[RegisteredUserCompact, Depend
         return {"message": "Success, all users have been added to the leaderboard! "}
     else:
         return {"message": f"You do not have access to add users to {leaderboard_name}"}
-    except sqlalchemy.exc.IntegrityError:
-        return {"message": f"user id {user_ids} is already in {leaderboard_name}"}
-    except:
-        return {"message": "Something went wrong and users have not been added to the leaderboard."}
+
+@router.post("/remove_users_from_leaderboard", status_code=status.HTTP_202_ACCEPTED)
+async def remove_from_leaderboard(token: Annotated[RegisteredUserCompact, Depends(verify_token)], user_ids: Annotated[list[int] | None, Query()], leaderboard_name: str):
+    # People can remove themselves from leaderboards
+    # The leaderboard owner can remove people from their leaderboard
+
+    pass
+
+@router.post("/edit_leaderboard_data")
+async def edit_leaderboard_data(token: Annotated[RegisteredUserCompact, Depends(verify_token)], mode: Mode = None,
+                                description: str = None, metric: LeaderboardMetricEnum = None, unique: bool = None, private: bool = None,
+                                mod_filters: str = None,
+                                score_filters: str = None,
+                                beatmap_filters: str = None,
+                                beatmapset_filters: str = None):
+    pass
