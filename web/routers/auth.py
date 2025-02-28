@@ -97,30 +97,31 @@ async def add_user_to_leaderboard(token: Annotated[RegisteredUserCompact, Depend
     session = orm.sessionmaker()
     stmt = select(Leaderboard).filter(Leaderboard.name == leaderboard_name)
     leaderboard = session.scalars(stmt).one()
-    try:
-        if (leaderboard.private and token['user_id'] == leaderboard.creator_id) or not leaderboard.private:
 
-            for user_id in user_ids:
-                # Check that user is registered
-                # If they are not registered, then pass
-                print('hi')
-                if session.get(RegisteredUser, user_id):
-                    print('hfdsafdsafdsa')
-                    new_leaderboard_spot = LeaderboardSpot()
-                    new_leaderboard_spot.leaderboard_id = leaderboard.leaderboard_id
-                    new_leaderboard_spot.user_id = user_id
-                    session.add(new_leaderboard_spot)
-                    session.commit()
-                    await recalculate_user(session, Leaderboard.name, user_id)
-                else:
-                    continue
+    if (leaderboard.private and token['user_id'] == leaderboard.creator_id) or not leaderboard.private:
 
-            session.commit()
+        problem_users = []
+        for user_id in user_ids:
+            # Check that user is registered
+            # If they are not registered, then pass
+            user = session.get(RegisteredUser, user_id)
 
-            return {"message": "Success, users have been added to the leaderboard! They will be calculated momentarily."}
-        else:
-            raise fastapi.exceptions.ValidationException
-    except fastapi.exceptions.ValidationException:
+            try:
+                new_leaderboard_spot = LeaderboardSpot()
+                new_leaderboard_spot.leaderboard_id = leaderboard.leaderboard_id
+                new_leaderboard_spot.user_id = user.user_id
+                session.add(new_leaderboard_spot)
+                await recalculate_user(session, user.user_id, leaderboard_id=new_leaderboard_spot.leaderboard_id)
+                session.commit()
+            except Exception:
+                problem_users.append(user_id)
+                session.rollback()
+                continue
+
+        if len(problem_users) > 0:
+            return {"message": f"Some users ({problem_users}) were not added to {leaderboard_name}. Other users have been added."}
+        return {"message": "Success, all users have been added to the leaderboard! "}
+    else:
         return {"message": f"You do not have access to add users to {leaderboard_name}"}
     except sqlalchemy.exc.IntegrityError:
         return {"message": f"user id {user_ids} is already in {leaderboard_name}"}
