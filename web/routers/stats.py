@@ -151,16 +151,3 @@ async def get_score_history(user_id: int, mode: Mode = 'osu', filter_string: Opt
     scores = top_play_per_day(session, user_id, mode, filters, mods, minimal)
     session.close()
     return {"length": len(scores), "user_id": user_id, "mode": mode.name, "filters": filter_string, "mods": mod_string, "minimal": minimal, "scores": scores}
-
-@router.get('/total_scores', status_code=status.HTTP_200_OK)
-async def total_scores(mode: Mode = 'osu', filter_string: Optional[str] = None, mod_string: Optional[str] = None, group_by: ScoreGroupBy = None) -> Dict:
-    """
-    Returns the number of scores that match the filters
-    """
-
-    session = orm.sessionmaker()
-    filters = parse_score_filters(mode, filter_string)
-    mod_filters = parse_mod_filters(mode, mod_string)
-    scores = get_total_scores(session, mode, filters, mod_filters, group_by=group_by)
-    group_by_str = "None" if group_by is None else group_by.name
-    return {"mode": mode.name, "filters": filter_string, "mods": mod_string, "grouping by": group_by_str, "scores": scores}
