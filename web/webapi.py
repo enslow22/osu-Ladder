@@ -213,6 +213,7 @@ async def get_leaderboards():
     session = orm.sessionmaker()
     stmt = select(Leaderboard)
     leaderboards = session.scalars(stmt).all()
+    leaderboards = [x.to_dict() | {"creator_username": x.creator.username} for x in leaderboards]
     session.close()
 
     return leaderboards
@@ -232,7 +233,9 @@ async def get_leaderboard_info(leaderboard_id: int = None, leaderboard_name: str
         stmt = select(LeaderboardSpot).filter(LeaderboardSpot.leaderboard_id == leaderboard_id).order_by(LeaderboardSpot.value.desc())
         leaderboard_spots = session.scalars(stmt).all()
 
-        return leaderboard.to_dict() | {"users": leaderboard_spots}
+        expanded_leaderboard_spots = [{"value": x.value, "username": x.user.username, "user_id": x.user.user_id, "avatar_url": x.user.avatar_url} for x in leaderboard_spots]
+
+        return leaderboard.to_dict() | {"creator": {"username": leaderboard.creator.username, "user_id": leaderboard.creator.user_id, "avatar_url": leaderboard.creator.avatar_url}} | {"users": expanded_leaderboard_spots}
     except:
         identifier = leaderboard_name if leaderboard_name is not None else leaderboard_id
         return {"message": f"Something went wrong, are you sure the leaderboard {identifier} exists?"}
